@@ -8,14 +8,24 @@ fn main() {
 
   println!("{}", a.0+b.0);
 
-  let mut board = Board::new();
+  let board = Board::new();
 
-  println!("{:?}", board.get_spot(&SolarID::Earth));
+  //println!("{:?}", board.get_spot(&SolarID::Earth));
 
   let player_1 = &mut board.new_player();
+  println!("Player 1 starts at spot: {}", player_1.current_spot());
 
-  board.move_player(player_1, 1);
-  println!("Player 1 at spot: {:?}", player_1.current_spot());
+  let player_1 = board.move_player(player_1, 1);
+  println!("Player 1 at spot: {}", player_1.current_spot());
+
+  let player_1 = board.move_player(player_1, 1);
+  println!("Player 1 at spot: {}", player_1.current_spot());
+
+  let player_1 = board.move_player(player_1, 8);
+  println!("Player 1 at spot: {}", player_1.current_spot());
+
+  let player_1 = board.move_player(player_1, 3);
+  println!("Player 1 at spot: {}", player_1.current_spot());
 
   
   // todo: maybe Landable or Spot should be a trait and I should have a specific type for each kind of spot, rather than them being variants of an enum 
@@ -29,8 +39,9 @@ fn main() {
 mod main {
   use crate::main::Spot::*;
   use std::collections::HashMap;
+  use std::fmt;
 
-  #[derive(PartialEq, Eq, Hash)]
+  #[derive(PartialEq, Eq, Hash, Debug)]
   pub enum SolarID {
     Earth,
     Moon,
@@ -42,14 +53,12 @@ mod main {
   }
   
   pub struct Board<'a> {
-    spots: HashMap<SolarID, &'a Spot>,
     board_path: BoardPath<'a>,
     players: Vec<PlayerCursor<'a>>,
   }
 
   impl <'a> Board<'a> {
     pub fn new() -> Board<'a> {
-
       let earth = Spot::Planet (Property {
         name: String::from("Earth"),
         monopoly: Monopoly::Earth,
@@ -70,11 +79,11 @@ mod main {
       // todo: constructor for Property, fill rent_table with None
 
       let moon_node = BoardNode::PassThrough {
-        spot: earth,
+        spot: moon,
         next: Box::new(BoardNode::Tail),
       };
       let earth_node = BoardNode::PassThrough {
-        spot: moon,
+        spot: earth,
         next: Box::new(moon_node),
       };
 
@@ -83,45 +92,27 @@ mod main {
       };
 
       Board {
-        spots: HashMap::new(), //emptry, is filled with first call to get a reference to a spot
         board_path,
         players: vec![],
       }
     }
-    
+
     pub fn new_player(&'a self) -> PlayerCursor<'a> {
       PlayerCursor { current_board_node: &self.board_path.start }
     }
 
-    // I see, asking for a mutable ref of `self` is annoying, because now it's gone unless we pass it back. returning a tuple for now, but I can see how this wasn't as clever as I originally thought.
-    pub fn get_spot<'b> (&'b mut self, name: &SolarID) -> &Spot {
-      let spot = self.spots.get(name);
-      match spot {
-        Some(spot) => spot,
-        None => {
-          let moo = self.populate_spots();
-          moo.spots.get(name).expect("populating spots failed")
-        }
-      }
-    }
+    // TODO
+    // pub fn get_spot<'b> (&'b mut self, name: &SolarID) -> &Spot {
+    //   let spot = self.spots.get(name);
+    //   match spot {
+    //     Some(spot) => spot,
+    //     None => {
+    //       panic!("No spot was created for SolarID {:?}", name);
+    //     }
+    //   }
+    // }
 
-    fn populate_spots<'b> (&'b mut self) -> &'a Board {
-      //todo: iterate over the board_path in order to populate this
-      let mut spots = HashMap::<SolarID, &'a Spot>::new();
-      let earth = self.board_path.start.spot();
-      spots.insert(SolarID::Earth, earth);
-      
-      let moon = match &self.board_path.start {
-        BoardNode::PassThrough { next, ..} => next.spot(),
-        _ => panic!("ya done fuk'd")
-      };
-      spots.insert(SolarID::Moon, moon);
-
-      self.spots = spots;
-      self
-    }
-
-    pub fn move_player (&'a self, player: &'a mut PlayerCursor<'a>, amount: u16) {
+    pub fn move_player (&'a self, player: &'a mut PlayerCursor<'a>, amount: u16) -> &'a mut PlayerCursor {
       let mut movement_remaining = amount;
       let mut current_node = player.current_board_node;
       while movement_remaining > 0 {
@@ -135,7 +126,15 @@ mod main {
           BoardNode::Tail => current_node = &self.board_path.start,
         }
       };
+
+      match current_node {
+        BoardNode::Tail => current_node = &self.board_path.start,
+        _ => (),
+      };
+
       player.current_board_node = current_node;
+
+      player
     }
   }
 
@@ -231,6 +230,21 @@ mod main {
         GravityWell {..} => false,
         _ => true,
       }
+    }
+  }
+  impl fmt::Display for Spot {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+      let spot_name = match &self {
+        EmptySpace { name } => name,
+        GravityWell { name } => name,
+        FederationStation { name, .. } => name,
+        Planet(prop) => &prop.name,
+        Moon(prop) => &prop.name,
+        SpaceDock(prop) => &prop.name,
+        ResearchLab(prop) => &prop.name,
+        Earth(prop) => &prop.name,
+      };
+      write!(f, "{}", spot_name)
     }
   }
 }
