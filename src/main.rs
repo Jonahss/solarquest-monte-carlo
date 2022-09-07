@@ -18,10 +18,12 @@ fn main() {
 
 mod main {
   use crate::main::Spot::*;
-  use std::collections::HashMap;
+  use std::borrow::Borrow;
+use std::collections::HashMap;
   use std::fmt;
   use std::mem::take;
   use std::rc::Rc;
+  use std::cell::RefCell;
 
   #[derive(PartialEq, Eq, Hash, Debug)]
   pub enum SolarID {
@@ -60,14 +62,14 @@ mod main {
       });
       // todo: constructor for Property, fill rent_table with None
 
-      let moon_node = Rc::new(BoardNode::PassThrough {
+      let moon_node = RefCell::new(Rc::new(BoardNode::PassThrough {
         spot: moon,
-        next: Rc::new(BoardNode::Tail),
-      });
-      let earth_node = Rc::new(BoardNode::PassThrough {
+        next: RefCell::new(Rc::new(BoardNode::Tail)),
+      }));
+      let earth_node = RefCell::new(Rc::new(BoardNode::PassThrough {
         spot: earth,
         next: moon_node,
-      });
+      }));
 
       let board_path = BoardPath {
         start: earth_node
@@ -79,139 +81,139 @@ mod main {
       }
     }
 
-    pub fn new_nested_loop() -> Board<'a> {
-      let earth = Spot::Planet (Property {
-        name: String::from("Earth"),
-        monopoly: Monopoly::Earth,
-        rent_table: [
-          Option::Some((Fedron(100), Hydron(5))),
-          Option::Some((Fedron(500), Hydron(10))),
-        ],
-      });
+    // pub fn new_nested_loop() -> Board<'a> {
+    //   let earth = Spot::Planet (Property {
+    //     name: String::from("Earth"),
+    //     monopoly: Monopoly::Earth,
+    //     rent_table: [
+    //       Option::Some((Fedron(100), Hydron(5))),
+    //       Option::Some((Fedron(500), Hydron(10))),
+    //     ],
+    //   });
 
-      let moon = Spot::Planet (Property {
-        name: String::from("Moon"),
-        monopoly: Monopoly::Earth,
-        rent_table: [
-          Option::Some((Fedron(100), Hydron(5))),
-          Option::Some((Fedron(500), Hydron(10))),
-        ],
-      });
-      // todo: constructor for Property, fill rent_table with None
+    //   let moon = Spot::Planet (Property {
+    //     name: String::from("Moon"),
+    //     monopoly: Monopoly::Earth,
+    //     rent_table: [
+    //       Option::Some((Fedron(100), Hydron(5))),
+    //       Option::Some((Fedron(500), Hydron(10))),
+    //     ],
+    //   });
+    //   // todo: constructor for Property, fill rent_table with None
 
-      let io = Spot::Planet (Property {
-        name: String::from("Io"),
-        monopoly: Monopoly::Jupiter,
-        rent_table: [
-          Option::Some((Fedron(100), Hydron(5))),
-          Option::Some((Fedron(500), Hydron(10))),
-        ],
-      });
+    //   let io = Spot::Planet (Property {
+    //     name: String::from("Io"),
+    //     monopoly: Monopoly::Jupiter,
+    //     rent_table: [
+    //       Option::Some((Fedron(100), Hydron(5))),
+    //       Option::Some((Fedron(500), Hydron(10))),
+    //     ],
+    //   });
 
-      let venus = Spot::Planet (Property {
-        name: String::from("Venus"),
-        monopoly: Monopoly::Venus,
-        rent_table: [
-          Option::Some((Fedron(100), Hydron(5))),
-          Option::Some((Fedron(500), Hydron(10))),
-        ],
-      });
+    //   let venus = Spot::Planet (Property {
+    //     name: String::from("Venus"),
+    //     monopoly: Monopoly::Venus,
+    //     rent_table: [
+    //       Option::Some((Fedron(100), Hydron(5))),
+    //       Option::Some((Fedron(500), Hydron(10))),
+    //     ],
+    //   });
 
-      let mut empty_space: Vec<Spot> = Vec::new();
-      for i in 0..3 {
-        empty_space.push(Spot::EmptySpace { name: format!("empty_space_{:?}", i)});
-      };
+    //   let mut empty_space: Vec<Spot> = Vec::new();
+    //   for i in 0..3 {
+    //     empty_space.push(Spot::EmptySpace { name: format!("empty_space_{:?}", i)});
+    //   };
 
-      let mut gravity_wells: Vec<Spot> = Vec::new();
-      for i in 0..3 {
-        gravity_wells.push(Spot::GravityWell { name: format!("gravity_well_{:?}", i)});
-      };
+    //   let mut gravity_wells: Vec<Spot> = Vec::new();
+    //   for i in 0..3 {
+    //     gravity_wells.push(Spot::GravityWell { name: format!("gravity_well_{:?}", i)});
+    //   };
 
-      let venus_node = Rc::new(BoardNode::PassThrough {
-        spot: venus,
-        next: Rc::new(BoardNode::Tail),
-      });
+    //   let venus_node = Rc::new(BoardNode::PassThrough {
+    //     spot: venus,
+    //     next: Rc::new(BoardNode::Tail),
+    //   });
       
-      let gw2_node = Rc::new(BoardNode::PassThrough {
-        spot: gravity_wells.pop().unwrap(),
-        next: venus_node, 
-      });
+    //   let gw2_node = Rc::new(BoardNode::PassThrough {
+    //     spot: gravity_wells.pop().unwrap(),
+    //     next: venus_node, 
+    //   });
 
-      let gw1_node = Rc::new(BoardNode::PassThrough {
-        spot: gravity_wells.pop().unwrap(),
-        next: gw2_node, 
-      });
+    //   let gw1_node = Rc::new(BoardNode::PassThrough {
+    //     spot: gravity_wells.pop().unwrap(),
+    //     next: gw2_node, 
+    //   });
 
-      let gw0_node = Rc::new(BoardNode::PassThrough {
-        spot: gravity_wells.pop().unwrap(),
-        next: gw1_node, 
-      });
+    //   let gw0_node = Rc::new(BoardNode::PassThrough {
+    //     spot: gravity_wells.pop().unwrap(),
+    //     next: gw1_node, 
+    //   });
 
-      let e2_node = Rc::new(BoardNode::Fork {
-        spot: empty_space.pop().unwrap(),
-        escape_orbit: gw0_node,
-        continue_orbit: Rc::new(BoardNode::Tail), //TODO need to make this IO
-      });
+    //   let e2_node = Rc::new(BoardNode::Fork {
+    //     spot: empty_space.pop().unwrap(),
+    //     escape_orbit: gw0_node,
+    //     continue_orbit: Rc::new(BoardNode::Tail), //TODO need to make this IO
+    //   });
 
-      let e1_node = Rc::new(BoardNode::PassThrough {
-        spot: empty_space.pop().unwrap(),
-        next: Rc::clone(&e2_node),
-      });
+    //   let e1_node = Rc::new(BoardNode::PassThrough {
+    //     spot: empty_space.pop().unwrap(),
+    //     next: Rc::clone(&e2_node),
+    //   });
 
-      let e0_node = Rc::new(BoardNode::PassThrough {
-        spot: empty_space.pop().unwrap(),
-        next: e1_node, 
-      });
+    //   let e0_node = Rc::new(BoardNode::PassThrough {
+    //     spot: empty_space.pop().unwrap(),
+    //     next: e1_node, 
+    //   });
 
-      let io_node = Rc::new(BoardNode::Merge {
-        spot: io,
-        next: e0_node,
-      });
+    //   let io_node = Rc::new(BoardNode::Merge {
+    //     spot: io,
+    //     next: e0_node,
+    //   });
 
-      let moon_node = Rc::new(BoardNode::PassThrough {
-        spot: moon,
-        next: Rc::clone(&io_node),
-      });
+    //   let moon_node = Rc::new(BoardNode::PassThrough {
+    //     spot: moon,
+    //     next: Rc::clone(&io_node),
+    //   });
       
-      let earth_node = Rc::new(BoardNode::PassThrough {
-        spot: earth,
-        next: moon_node,
-      });
+    //   let earth_node = Rc::new(BoardNode::PassThrough {
+    //     spot: earth,
+    //     next: moon_node,
+    //   });
 
-      match &*e2_node {
-        BoardNode::Fork { mut continue_orbit, .. } => continue_orbit = Rc::clone(&io_node),
-        _ => panic!("durr"),
-      };
+    //   match e2_node {
+    //     BoardNode::Fork { continue_orbit, .. } => continue_orbit = Rc::clone(&io_node),
+    //     _ => panic!("durr"),
+    //   };
 
-      // link up e2 to Io
-      // let current_node = &earth_node;
-      // while true {
-      //   let spot = current_node.spot();
-      //   let io;
-      //   if spot.to_string() == "Io" {
-      //     io = current_node;
-      //   };
-      //   if spot.to_string() == "empty_space_2" {
-      //     if let BoardNode::Fork { spot, escape_orbit, continue_orbit } = current_node {
-      //       continue_orbit = &io;
-      //       break;
-      //     } else {
-      //       panic!("we expected to find io and empty_space_2, but did not");
-      //     }
-      //   }
-      // }
+    //   // link up e2 to Io
+    //   // let current_node = &earth_node;
+    //   // while true {
+    //   //   let spot = current_node.spot();
+    //   //   let io;
+    //   //   if spot.to_string() == "Io" {
+    //   //     io = current_node;
+    //   //   };
+    //   //   if spot.to_string() == "empty_space_2" {
+    //   //     if let BoardNode::Fork { spot, escape_orbit, continue_orbit } = current_node {
+    //   //       continue_orbit = &io;
+    //   //       break;
+    //   //     } else {
+    //   //       panic!("we expected to find io and empty_space_2, but did not");
+    //   //     }
+    //   //   }
+    //   // }
 
-      let board_path = BoardPath {
-        start: earth_node
-      };
+    //   let board_path = BoardPath {
+    //     start: earth_node
+    //   };
 
-      Board {
-        board_path,
-        players: vec![],
-      }
-    }
+    //   Board {
+    //     board_path,
+    //     players: vec![],
+    //   }
+    // }
 
-    pub fn new_player(&'a self) -> PlayerCursor<'a> {
+    pub fn new_player(&'a self) -> PlayerCursor {
       PlayerCursor { current_board_node: &self.board_path.start }
     }
 
@@ -228,15 +230,15 @@ mod main {
 
     pub fn move_player (&'a self, player: &'a mut PlayerCursor<'a>, amount: u16) -> &'a mut PlayerCursor {
       let mut movement_remaining = amount;
-      let mut current_node = player.current_board_node;
+      let mut current_node: &RefCell<Rc<BoardNode>> = &player.current_board_node;
       let mut last_fork = Option::None;
       let mut moves_since_last_fork = 0;
       let mut take_fork = false;
-      let mut last_non_gravity_well = player.current_board_node;
+      let mut last_non_gravity_well: &RefCell<Rc<BoardNode>> = &player.current_board_node;
       
       while movement_remaining > 0 {
         // set last_non_gravity_well
-        match current_node {
+        match &**current_node.borrow() {
           BoardNode::PassThrough { spot, ..} |
           BoardNode::Fork { spot, .. } |
           BoardNode::Merge { spot, .. } => {
@@ -249,7 +251,7 @@ mod main {
         };
 
         // main movement loop
-        match current_node {
+        match &**current_node.borrow() {
           BoardNode::PassThrough { next, .. } => {
             current_node = next;
             movement_remaining -= 1;
@@ -266,12 +268,12 @@ mod main {
               moves_since_last_fork = 1;
             } else {
               // we tried to escape and failed, continue our orbit
-              current_node = continue_orbit;
+              current_node = &continue_orbit;
               movement_remaining -= 1;
             }
           },
           BoardNode::Merge { next, .. } => {
-            current_node = next;
+            current_node = &next;
             movement_remaining -= 1;
             if let Some(_) = last_fork {
               moves_since_last_fork += 1;
@@ -282,7 +284,7 @@ mod main {
 
         // rewind if we land on a gravity well
         if movement_remaining == 0 {
-          match current_node {
+          match &**current_node.borrow() {
             BoardNode::PassThrough { spot, ..} |
             BoardNode::Fork { spot, .. } |
             BoardNode::Merge { spot, .. } => {
@@ -297,7 +299,7 @@ mod main {
                     last_fork = Option::None;
                   },
                   Option::None => {
-                    current_node = last_non_gravity_well;
+                    current_node = &last_non_gravity_well;
                   },
                 };
               };
@@ -308,7 +310,7 @@ mod main {
       };
 
       // loop to first node, if we end on the Tail
-      match current_node {
+      match **current_node.borrow() {
         BoardNode::Tail => current_node = &self.board_path.start,
         _ => (),
       };
@@ -320,13 +322,13 @@ mod main {
   }
 
   struct BoardPath {
-    start: Rc<BoardNode>,
+    start: RefCell<Rc<BoardNode>>,
   }
 
   enum BoardNode {
-    PassThrough { spot: Spot, next: Rc<BoardNode> },
-    Fork { spot: Spot, escape_orbit: Rc<BoardNode>, continue_orbit: Rc<BoardNode> },
-    Merge { spot: Spot, next: Rc<BoardNode> },
+    PassThrough { spot: Spot, next: RefCell<Rc<BoardNode>> },
+    Fork { spot: Spot, escape_orbit: RefCell<Rc<BoardNode>>, continue_orbit: RefCell<Rc<BoardNode>> },
+    Merge { spot: Spot, next: RefCell<Rc<BoardNode>> },
     Tail,
   }
 
@@ -342,17 +344,12 @@ mod main {
   }
 
   pub struct PlayerCursor<'a> {
-    current_board_node: &'a BoardNode,
+    current_board_node: &'a RefCell<Rc<BoardNode>>,
   }
 
   impl <'a> PlayerCursor<'a> {
     pub fn current_spot(&self) -> &'a Spot {
-      match self.current_board_node {
-        BoardNode::PassThrough { spot, .. } => spot,
-        BoardNode::Fork { spot, .. } => spot,
-        BoardNode::Merge { spot, .. } => spot,
-        BoardNode::Tail => panic!("Player piece is lost in space!"), 
-      }
+      self.current_board_node.borrow().spot()
     }
   }
 
@@ -452,32 +449,32 @@ mod tests {
       assert_eq!(player_1.current_spot().to_string(), "Moon");
     }
 
-    #[test]
-    fn nested_loop_board() {
-      let board = Board::new_nested_loop();
+//     #[test]
+//     fn nested_loop_board() {
+//       let board = Board::new_nested_loop();
 
-      let player_1 = &mut board.new_player();
- //     assert_eq!(player_1.current_spot().to_string(), "Earth");
+//       let player_1 = &mut board.new_player();
+//  //     assert_eq!(player_1.current_spot().to_string(), "Earth");
 
-      let player_1 = board.move_player(player_1, 1);
- //     assert_eq!(player_1.current_spot().to_string(), "Moon");
+//       let player_1 = board.move_player(player_1, 1);
+//  //     assert_eq!(player_1.current_spot().to_string(), "Moon");
 
-      let player_1 = board.move_player(player_1, 1);
- //     assert_eq!(player_1.current_spot().to_string(), "Io");
+//       let player_1 = board.move_player(player_1, 1);
+//  //     assert_eq!(player_1.current_spot().to_string(), "Io");
 
-      let player_1 = board.move_player(player_1, 3);
-  //    assert_eq!(player_1.current_spot().to_string(), "empty_space_2");
+//       let player_1 = board.move_player(player_1, 3);
+//   //    assert_eq!(player_1.current_spot().to_string(), "empty_space_2");
 
-      let player_1 = board.move_player(player_1, 1);
-      assert_eq!(player_1.current_spot().to_string(), "Io");
+//       let player_1 = board.move_player(player_1, 1);
+//       assert_eq!(player_1.current_spot().to_string(), "Io");
 
-      let player_1 = board.move_player(player_1, 6);
-      assert_eq!(player_1.current_spot().to_string(), "empty_space_1");
+//       let player_1 = board.move_player(player_1, 6);
+//       assert_eq!(player_1.current_spot().to_string(), "empty_space_1");
 
-      let player_1 = board.move_player(player_1, 5);
-      assert_eq!(player_1.current_spot().to_string(), "Venus");
+//       let player_1 = board.move_player(player_1, 5);
+//       assert_eq!(player_1.current_spot().to_string(), "Venus");
 
-      let player_1 = board.move_player(player_1, 6);
-      assert_eq!(player_1.current_spot().to_string(), "empty_space_2");
-    }
+//       let player_1 = board.move_player(player_1, 6);
+//       assert_eq!(player_1.current_spot().to_string(), "empty_space_2");
+//     }
 }
