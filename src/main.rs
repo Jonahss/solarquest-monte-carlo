@@ -9,11 +9,8 @@ fn main() {
   println!("{}", a.0+b.0);
 
   // todo: maybe Landable or Spot should be a trait and I should have a specific type for each kind of spot, rather than them being variants of an enum 
-  let mut empty_space: Vec<Spot> = Vec::new();
-  for i in [0..5] {
-    empty_space.push(Spot::EmptySpace { name: format!("empty_space_{:?}", i)});
-  };
   
+  let board = Board::new_nested_loop();
 }
 
 mod main {
@@ -27,10 +24,15 @@ use std::mem::take;
     Earth,
     Moon,
     JupiterSpaceDock,
-    IO,
+    Io,
+    Venus,
     Ganymede,
     EmptySpace0,
+    EmptySpace1,
+    EmptySpace2,
     GravityWell0,
+    GravityWell1,
+    GravityWell2,
   }
   
   pub struct Board<'a> {
@@ -41,7 +43,7 @@ use std::mem::take;
   impl <'a> Board<'a> {
     pub fn new_single_loop() -> Board<'a> {
       let earth = Spot::Planet (Property {
-        name: String::from("Earth"),
+        name: SolarID::Earth,
         monopoly: Monopoly::Earth,
         rent_table: [
           Option::Some((Fedron(100), Hydron(5))),
@@ -50,7 +52,7 @@ use std::mem::take;
       });
 
       let moon = Spot::Planet (Property {
-        name: String::from("Moon"),
+        name: SolarID::Moon,
         monopoly: Monopoly::Earth,
         rent_table: [
           Option::Some((Fedron(100), Hydron(5))),
@@ -80,7 +82,7 @@ use std::mem::take;
 
     pub fn new_nested_loop() -> Board<'a> {
       let earth = Spot::Planet (Property {
-        name: String::from("Earth"),
+        name: SolarID::Earth,
         monopoly: Monopoly::Earth,
         rent_table: [
           Option::Some((Fedron(100), Hydron(5))),
@@ -89,7 +91,7 @@ use std::mem::take;
       });
 
       let moon = Spot::Planet (Property {
-        name: String::from("Moon"),
+        name: SolarID::Moon,
         monopoly: Monopoly::Earth,
         rent_table: [
           Option::Some((Fedron(100), Hydron(5))),
@@ -99,7 +101,7 @@ use std::mem::take;
       // todo: constructor for Property, fill rent_table with None
 
       let io = Spot::Planet (Property {
-        name: String::from("Io"),
+        name: SolarID::Io,
         monopoly: Monopoly::Jupiter,
         rent_table: [
           Option::Some((Fedron(100), Hydron(5))),
@@ -108,7 +110,7 @@ use std::mem::take;
       });
 
       let venus = Spot::Planet (Property {
-        name: String::from("Venus"),
+        name: SolarID::Venus,
         monopoly: Monopoly::Venus,
         rent_table: [
           Option::Some((Fedron(100), Hydron(5))),
@@ -116,14 +118,15 @@ use std::mem::take;
         ],
       });
 
+      // TODO: use `map`?
       let mut empty_space: Vec<Spot> = Vec::new();
-      for i in 0..3 {
-        empty_space.push(Spot::EmptySpace { name: format!("empty_space_{:?}", i)});
+      for i in vec![SolarID::EmptySpace0, SolarID::EmptySpace1, SolarID::EmptySpace2] {
+        empty_space.push(Spot::EmptySpace { name: i });
       };
 
       let mut gravity_wells: Vec<Spot> = Vec::new();
-      for i in 0..3 {
-        gravity_wells.push(Spot::GravityWell { name: format!("gravity_well_{:?}", i)});
+      for i in vec![SolarID::EmptySpace0, SolarID::EmptySpace1, SolarID::EmptySpace2] {
+        gravity_wells.push(Spot::GravityWell { name: i });
       };
 
       let venus_node = BoardNode::PassThrough {
@@ -191,16 +194,16 @@ use std::mem::take;
       PlayerCursor { current_board_node: &self.board_path.start }
     }
 
-    // TODO
-    // pub fn get_spot<'b> (&'b mut self, name: &SolarID) -> &Spot {
-    //   let spot = self.spots.get(name);
-    //   match spot {
-    //     Some(spot) => spot,
-    //     None => {
-    //       panic!("No spot was created for SolarID {:?}", name);
-    //     }
-    //   }
-    // }
+   
+    //fn find_node<'b> (&'b mut self, name: &SolarID) -> &Spot {
+      // let spot = self.spots.get(name);
+      // match spot {
+      //   Some(spot) => spot,
+      //   None => {
+      //     panic!("No spot was created for SolarID {:?}", name);
+      //   }
+      // }
+    //}
 
     pub fn move_player (&'a self, player: &'a mut PlayerCursor<'a>, amount: u16) -> &'a mut PlayerCursor {
       let mut movement_remaining = amount;
@@ -397,7 +400,7 @@ use std::mem::take;
 
   #[derive(Debug)]
   pub struct Property {
-    pub name: String,
+    pub name: SolarID,
     pub monopoly: Monopoly,
     pub rent_table: [Option<(Fedron, Hydron)>; 2],
   }
@@ -418,9 +421,9 @@ use std::mem::take;
 
   #[derive(Debug)]
   pub enum Spot {
-    EmptySpace {name: String},
-    GravityWell {name: String},
-    FederationStation {name: String, reward: Fedron},
+    EmptySpace {name: SolarID},
+    GravityWell {name: SolarID},
+    FederationStation {name: SolarID, reward: Fedron},
     Planet(Property),
     Moon(Property),
     SpaceDock(Property),
@@ -448,7 +451,7 @@ use std::mem::take;
         ResearchLab(prop) => &prop.name,
         Earth(prop) => &prop.name,
       };
-      write!(f, "{}", spot_name)
+      write!(f, "{:?}", spot_name)
     }
   }
 }
@@ -481,27 +484,27 @@ mod tests {
       let board = Board::new_nested_loop();
 
       let player_1 = &mut board.new_player();
- //     assert_eq!(player_1.current_spot().to_string(), "Earth");
+      assert_eq!(player_1.current_spot().to_string(), "Earth");
 
       let player_1 = board.move_player(player_1, 1);
- //     assert_eq!(player_1.current_spot().to_string(), "Moon");
+      assert_eq!(player_1.current_spot().to_string(), "Moon");
 
       let player_1 = board.move_player(player_1, 1);
- //     assert_eq!(player_1.current_spot().to_string(), "Io");
+      assert_eq!(player_1.current_spot().to_string(), "Io");
 
       let player_1 = board.move_player(player_1, 3);
-  //    assert_eq!(player_1.current_spot().to_string(), "empty_space_2");
+      assert_eq!(player_1.current_spot().to_string(), "EmptySpace2");
 
       let player_1 = board.move_player(player_1, 1);
       assert_eq!(player_1.current_spot().to_string(), "Io");
 
       let player_1 = board.move_player(player_1, 6);
-      assert_eq!(player_1.current_spot().to_string(), "empty_space_1");
+      assert_eq!(player_1.current_spot().to_string(), "EmptySpace1");
 
       let player_1 = board.move_player(player_1, 5);
       assert_eq!(player_1.current_spot().to_string(), "Venus");
 
       let player_1 = board.move_player(player_1, 6);
-      assert_eq!(player_1.current_spot().to_string(), "empty_space_2");
+      assert_eq!(player_1.current_spot().to_string(), "EmptySpace2");
     }
 }
