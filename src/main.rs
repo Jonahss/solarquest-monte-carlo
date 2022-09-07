@@ -149,7 +149,7 @@ use std::mem::take;
       let e2_node = BoardNode::Fork {
         spot: empty_space.pop().unwrap(),
         escape_orbit: Box::new(gw0_node),
-        continue_orbit: (&BoardNode::Tail), //TODO need to make this IO
+        continue_orbit: (&BoardNode::E2_Tail), //TODO need to make this IO
       };
 
       let e1_node = BoardNode::PassThrough {
@@ -176,24 +176,6 @@ use std::mem::take;
         spot: earth,
         next: Box::new(moon_node),
       };
-
-      // link up e2 to Io
-      let current_node = &earth_node;
-      while true {
-        let spot = current_node.spot();
-        let io;
-        if spot.to_string() == "Io" {
-          io = current_node;
-        };
-        if spot.to_string() == "empty_space_2" {
-          if let BoardNode::Fork { spot, escape_orbit, continue_orbit } = current_node {
-            continue_orbit = &io;
-            break;
-          } else {
-            panic!("we expected to find io and empty_space_2, but did not");
-          }
-        }
-      }
 
       let board_path = BoardPath {
         start: earth_node
@@ -239,7 +221,7 @@ use std::mem::take;
               _ => last_non_gravity_well = current_node,
             };
           },
-          BoardNode::Tail => (),
+          _ => (),
         };
 
         // main movement loop
@@ -272,6 +254,29 @@ use std::mem::take;
             };
           },
           BoardNode::Tail => current_node = &self.board_path.start,
+          BoardNode::E2_Tail => {
+            // link up e2 to Io
+            let mut io = &self.board_path.start;
+            {
+              let mut current_node = &self.board_path.start;
+              loop {
+                let spot = current_node.spot();
+                if spot.to_string() == "Io" {
+                  io = current_node;
+                  break;
+                };
+                match current_node {
+                  BoardNode::PassThrough { next, ..} |
+                  BoardNode::Merge { next, .. } => {
+                    current_node = next;
+                  },
+                  BoardNode::Fork { escape_orbit, .. } => current_node = &escape_orbit,
+                  _ => (),
+                    }
+              };
+            }
+            current_node = io;
+          },
         }
 
         // rewind if we land on a gravity well
@@ -296,7 +301,7 @@ use std::mem::take;
                 };
               };
             },
-            BoardNode::Tail => (),
+            _ => (),
           };
         };
       };
@@ -304,6 +309,29 @@ use std::mem::take;
       // loop to first node, if we end on the Tail
       match current_node {
         BoardNode::Tail => current_node = &self.board_path.start,
+        BoardNode::E2_Tail => {
+          // link up e2 to Io
+          let mut io = &self.board_path.start;
+          {
+            let mut current_node = &self.board_path.start;
+            loop {
+              let spot = current_node.spot();
+              if spot.to_string() == "Io" {
+                io = current_node;
+                break;
+              };
+              match current_node {
+                BoardNode::PassThrough { next, ..} |
+                BoardNode::Merge { next, .. } => {
+                  current_node = next;
+                },
+                BoardNode::Fork { escape_orbit, .. } => current_node = &escape_orbit,
+                _ => (),
+                  }
+            };
+          }
+          current_node = io;
+        },
         _ => (),
       };
 
@@ -322,6 +350,7 @@ use std::mem::take;
     Fork { spot: Spot, escape_orbit: Box<BoardNode<'a>>, continue_orbit: &'a BoardNode<'a> },
     Merge { spot: Spot, next: Box<BoardNode<'a>> },
     Tail,
+    E2_Tail,
   }
 
   impl <'a> BoardNode<'a> {
@@ -330,7 +359,7 @@ use std::mem::take;
         BoardNode::PassThrough { spot, .. } => spot,
         BoardNode::Fork { spot, .. } => spot,
         BoardNode::Merge { spot, .. } => spot,
-        BoardNode::Tail => panic!("Player piece is lost in space!"),
+        _ => panic!("Player piece is lost in space!"),
       }
     }
   }
@@ -341,12 +370,13 @@ use std::mem::take;
 
   impl <'a> PlayerCursor<'a> {
     pub fn current_spot(&self) -> &'a Spot {
-      match self.current_board_node {
-        BoardNode::PassThrough { spot, .. } => spot,
-        BoardNode::Fork { spot, .. } => spot,
-        BoardNode::Merge { spot, .. } => spot,
-        BoardNode::Tail => panic!("Player piece is lost in space!"), 
-      }
+      &self.current_board_node.spot()
+      // match self.current_board_node {
+      //   BoardNode::PassThrough { spot, .. } => spot,
+      //   BoardNode::Fork { spot, .. } => spot,
+      //   BoardNode::Merge { spot, .. } => spot,
+      //   _ => ("Player piece is lost in space!"), 
+      // }
     }
   }
 
