@@ -8,26 +8,6 @@ fn main() {
 
   println!("{}", a.0+b.0);
 
-  let board = Board::new();
-
-  //println!("{:?}", board.get_spot(&SolarID::Earth));
-
-  let player_1 = &mut board.new_player();
-  println!("Player 1 starts at spot: {}", player_1.current_spot());
-
-  let player_1 = board.move_player(player_1, 1);
-  println!("Player 1 at spot: {}", player_1.current_spot());
-
-  let player_1 = board.move_player(player_1, 1);
-  println!("Player 1 at spot: {}", player_1.current_spot());
-
-  let player_1 = board.move_player(player_1, 8);
-  println!("Player 1 at spot: {}", player_1.current_spot());
-
-  let player_1 = board.move_player(player_1, 3);
-  println!("Player 1 at spot: {}", player_1.current_spot());
-
-  
   // todo: maybe Landable or Spot should be a trait and I should have a specific type for each kind of spot, rather than them being variants of an enum 
   let mut empty_space: Vec<Spot> = Vec::new();
   for i in [0..5] {
@@ -40,6 +20,7 @@ mod main {
   use crate::main::Spot::*;
   use std::collections::HashMap;
   use std::fmt;
+use std::mem::take;
 
   #[derive(PartialEq, Eq, Hash, Debug)]
   pub enum SolarID {
@@ -58,7 +39,7 @@ mod main {
   }
 
   impl <'a> Board<'a> {
-    pub fn new() -> Board<'a> {
+    pub fn new_single_loop() -> Board<'a> {
       let earth = Spot::Planet (Property {
         name: String::from("Earth"),
         monopoly: Monopoly::Earth,
@@ -97,6 +78,133 @@ mod main {
       }
     }
 
+    pub fn new_nested_loop() -> Board<'a> {
+      let earth = Spot::Planet (Property {
+        name: String::from("Earth"),
+        monopoly: Monopoly::Earth,
+        rent_table: [
+          Option::Some((Fedron(100), Hydron(5))),
+          Option::Some((Fedron(500), Hydron(10))),
+        ],
+      });
+
+      let moon = Spot::Planet (Property {
+        name: String::from("Moon"),
+        monopoly: Monopoly::Earth,
+        rent_table: [
+          Option::Some((Fedron(100), Hydron(5))),
+          Option::Some((Fedron(500), Hydron(10))),
+        ],
+      });
+      // todo: constructor for Property, fill rent_table with None
+
+      let io = Spot::Planet (Property {
+        name: String::from("Io"),
+        monopoly: Monopoly::Jupiter,
+        rent_table: [
+          Option::Some((Fedron(100), Hydron(5))),
+          Option::Some((Fedron(500), Hydron(10))),
+        ],
+      });
+
+      let venus = Spot::Planet (Property {
+        name: String::from("Venus"),
+        monopoly: Monopoly::Venus,
+        rent_table: [
+          Option::Some((Fedron(100), Hydron(5))),
+          Option::Some((Fedron(500), Hydron(10))),
+        ],
+      });
+
+      let mut empty_space: Vec<Spot> = Vec::new();
+      for i in 0..3 {
+        empty_space.push(Spot::EmptySpace { name: format!("empty_space_{:?}", i)});
+      };
+
+      let mut gravity_wells: Vec<Spot> = Vec::new();
+      for i in 0..3 {
+        gravity_wells.push(Spot::GravityWell { name: format!("gravity_well_{:?}", i)});
+      };
+
+      let venus_node = BoardNode::PassThrough {
+        spot: venus,
+        next: Box::new(BoardNode::Tail),
+      };
+      
+      let gw2_node = BoardNode::PassThrough {
+        spot: gravity_wells.pop().unwrap(),
+        next: Box::new(venus_node) 
+      };
+
+      let gw1_node = BoardNode::PassThrough {
+        spot: gravity_wells.pop().unwrap(),
+        next: Box::new(gw2_node) 
+      };
+
+      let gw0_node = BoardNode::PassThrough {
+        spot: gravity_wells.pop().unwrap(),
+        next: Box::new(gw1_node) 
+      };
+
+      let e2_node = BoardNode::Fork {
+        spot: empty_space.pop().unwrap(),
+        escape_orbit: Box::new(gw0_node),
+        continue_orbit: (&BoardNode::Tail), //TODO need to make this IO
+      };
+
+      let e1_node = BoardNode::PassThrough {
+        spot: empty_space.pop().unwrap(),
+        next: Box::new(e2_node) 
+      };
+
+      let e0_node = BoardNode::PassThrough {
+        spot: empty_space.pop().unwrap(),
+        next: Box::new(e1_node) 
+      };
+
+      let io_node = BoardNode::Merge {
+        spot: io,
+        next: Box::new(e0_node) 
+      };
+
+      let moon_node = BoardNode::PassThrough {
+        spot: moon,
+        next: Box::new(io_node) 
+      };
+      
+      let earth_node = BoardNode::PassThrough {
+        spot: earth,
+        next: Box::new(moon_node),
+      };
+
+      // link up e2 to Io
+      let current_node = &earth_node;
+      while true {
+        let spot = current_node.spot();
+        let io;
+        if spot.to_string() == "Io" {
+          io = current_node;
+        };
+        if spot.to_string() == "empty_space_2" {
+          if let BoardNode::Fork { spot, escape_orbit, continue_orbit } = current_node {
+            continue_orbit = &io;
+            break;
+          } else {
+            panic!("we expected to find io and empty_space_2, but did not");
+          }
+        }
+      }
+
+      let board_path = BoardPath {
+        start: earth_node
+      };
+
+      Board {
+        board_path,
+        players: vec![],
+      }
+    }
+
     pub fn new_player(&'a self) -> PlayerCursor<'a> {
       PlayerCursor { current_board_node: &self.board_path.start }
     }
@@ -115,18 +223,85 @@ mod main {
     pub fn move_player (&'a self, player: &'a mut PlayerCursor<'a>, amount: u16) -> &'a mut PlayerCursor {
       let mut movement_remaining = amount;
       let mut current_node = player.current_board_node;
+      let mut last_fork = Option::None;
+      let mut moves_since_last_fork = 0;
+      let mut take_fork = false;
+      let mut last_non_gravity_well = player.current_board_node;
+      
       while movement_remaining > 0 {
+        // set last_non_gravity_well
+        match current_node {
+          BoardNode::PassThrough { spot, ..} |
+          BoardNode::Fork { spot, .. } |
+          BoardNode::Merge { spot, .. } => {
+            match spot {
+              Spot::GravityWell { .. } => (),
+              _ => last_non_gravity_well = current_node,
+            };
+          },
+          BoardNode::Tail => (),
+        };
+
+        // main movement loop
         match current_node {
           BoardNode::PassThrough { next, .. } => {
             current_node = next;
             movement_remaining -= 1;
+            if let Some(_) = last_fork {
+              moves_since_last_fork += 1;
+            };
           },
-          BoardNode::Fork { .. } => panic!("todo"),
-          BoardNode::Merge { .. } => panic!("todo"),
+          BoardNode::Fork { escape_orbit, continue_orbit, .. } => {
+            // if we haven't been instructed to take the fork, we'll follow the escape orbit
+            if !take_fork {
+              last_fork = Option::Some(current_node);
+              current_node = &escape_orbit;
+              movement_remaining -= 1;
+              moves_since_last_fork = 1;
+            } else {
+              // we tried to escape and failed, continue our orbit
+              current_node = continue_orbit;
+              movement_remaining -= 1;
+            }
+          },
+          BoardNode::Merge { next, .. } => {
+            current_node = next;
+            movement_remaining -= 1;
+            if let Some(_) = last_fork {
+              moves_since_last_fork += 1;
+            };
+          },
           BoardNode::Tail => current_node = &self.board_path.start,
         }
+
+        // rewind if we land on a gravity well
+        if movement_remaining == 0 {
+          match current_node {
+            BoardNode::PassThrough { spot, ..} |
+            BoardNode::Fork { spot, .. } |
+            BoardNode::Merge { spot, .. } => {
+              if let Spot::GravityWell { .. } = spot {
+                // if we passed a fork, take the other leg. If not, go to the last non-gravity-well
+                match last_fork {
+                  Option::Some(fork_node) => {
+                    take_fork = true;
+                    current_node = fork_node;
+                    movement_remaining = moves_since_last_fork;
+                    moves_since_last_fork = 0;
+                    last_fork = Option::None;
+                  },
+                  Option::None => {
+                    current_node = last_non_gravity_well;
+                  },
+                };
+              };
+            },
+            BoardNode::Tail => (),
+          };
+        };
       };
 
+      // loop to first node, if we end on the Tail
       match current_node {
         BoardNode::Tail => current_node = &self.board_path.start,
         _ => (),
@@ -144,8 +319,7 @@ mod main {
 
   enum BoardNode<'a> {
     PassThrough { spot: Spot, next: Box<BoardNode<'a>> },
-    Fork { spot: Spot, escape_orbit: Box<BoardNode<
-          'a>>, continue_orbit: &'a BoardNode<'a> },
+    Fork { spot: Spot, escape_orbit: Box<BoardNode<'a>>, continue_orbit: &'a BoardNode<'a> },
     Merge { spot: Spot, next: Box<BoardNode<'a>> },
     Tail,
   }
@@ -251,13 +425,53 @@ mod main {
 
 #[cfg(test)]
 mod tests {
+  use crate::Board;
     #[test]
-    fn exploration() {
-        assert_eq!(2 + 2, 4);
+    fn single_loop_board() {
+      let board = Board::new_single_loop();
+
+      let player_1 = &mut board.new_player();
+      assert_eq!(player_1.current_spot().to_string(), "Earth");
+
+      let player_1 = board.move_player(player_1, 1);
+      assert_eq!(player_1.current_spot().to_string(), "Moon");
+
+      let player_1 = board.move_player(player_1, 1);
+      assert_eq!(player_1.current_spot().to_string(), "Earth");
+
+      let player_1 = board.move_player(player_1, 8);
+      assert_eq!(player_1.current_spot().to_string(), "Earth");
+
+      let player_1 = board.move_player(player_1, 3);
+      assert_eq!(player_1.current_spot().to_string(), "Moon");
     }
 
     #[test]
-    fn another() {
-        panic!("Make this test fail");
+    fn nested_loop_board() {
+      let board = Board::new_nested_loop();
+
+      let player_1 = &mut board.new_player();
+ //     assert_eq!(player_1.current_spot().to_string(), "Earth");
+
+      let player_1 = board.move_player(player_1, 1);
+ //     assert_eq!(player_1.current_spot().to_string(), "Moon");
+
+      let player_1 = board.move_player(player_1, 1);
+ //     assert_eq!(player_1.current_spot().to_string(), "Io");
+
+      let player_1 = board.move_player(player_1, 3);
+  //    assert_eq!(player_1.current_spot().to_string(), "empty_space_2");
+
+      let player_1 = board.move_player(player_1, 1);
+      assert_eq!(player_1.current_spot().to_string(), "Io");
+
+      let player_1 = board.move_player(player_1, 6);
+      assert_eq!(player_1.current_spot().to_string(), "empty_space_1");
+
+      let player_1 = board.move_player(player_1, 5);
+      assert_eq!(player_1.current_spot().to_string(), "Venus");
+
+      let player_1 = board.move_player(player_1, 6);
+      assert_eq!(player_1.current_spot().to_string(), "empty_space_2");
     }
 }
