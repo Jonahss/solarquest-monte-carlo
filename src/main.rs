@@ -20,7 +20,8 @@ mod main {
   use crate::main::Spot::*;
   use std::collections::HashMap;
   use std::fmt;
-use std::mem::take;
+  use std::mem::take;
+  use std::rc::Rc;
 
   #[derive(PartialEq, Eq, Hash, Debug)]
   pub enum SolarID {
@@ -34,7 +35,7 @@ use std::mem::take;
   }
   
   pub struct Board<'a> {
-    board_path: BoardPath<'a>,
+    board_path: BoardPath,
     players: Vec<PlayerCursor<'a>>,
   }
 
@@ -59,14 +60,14 @@ use std::mem::take;
       });
       // todo: constructor for Property, fill rent_table with None
 
-      let moon_node = BoardNode::PassThrough {
+      let moon_node = Rc::new(BoardNode::PassThrough {
         spot: moon,
-        next: Box::new(BoardNode::Tail),
-      };
-      let earth_node = BoardNode::PassThrough {
+        next: Rc::new(BoardNode::Tail),
+      });
+      let earth_node = Rc::new(BoardNode::PassThrough {
         spot: earth,
-        next: Box::new(moon_node),
-      };
+        next: moon_node,
+      });
 
       let board_path = BoardPath {
         start: earth_node
@@ -126,74 +127,79 @@ use std::mem::take;
         gravity_wells.push(Spot::GravityWell { name: format!("gravity_well_{:?}", i)});
       };
 
-      let venus_node = BoardNode::PassThrough {
+      let venus_node = Rc::new(BoardNode::PassThrough {
         spot: venus,
-        next: Box::new(BoardNode::Tail),
-      };
+        next: Rc::new(BoardNode::Tail),
+      });
       
-      let gw2_node = BoardNode::PassThrough {
+      let gw2_node = Rc::new(BoardNode::PassThrough {
         spot: gravity_wells.pop().unwrap(),
-        next: Box::new(venus_node) 
-      };
+        next: venus_node, 
+      });
 
-      let gw1_node = BoardNode::PassThrough {
+      let gw1_node = Rc::new(BoardNode::PassThrough {
         spot: gravity_wells.pop().unwrap(),
-        next: Box::new(gw2_node) 
-      };
+        next: gw2_node, 
+      });
 
-      let gw0_node = BoardNode::PassThrough {
+      let gw0_node = Rc::new(BoardNode::PassThrough {
         spot: gravity_wells.pop().unwrap(),
-        next: Box::new(gw1_node) 
-      };
+        next: gw1_node, 
+      });
 
-      let e2_node = BoardNode::Fork {
+      let e2_node = Rc::new(BoardNode::Fork {
         spot: empty_space.pop().unwrap(),
-        escape_orbit: Box::new(gw0_node),
-        continue_orbit: (&BoardNode::Tail), //TODO need to make this IO
-      };
+        escape_orbit: gw0_node,
+        continue_orbit: Rc::new(BoardNode::Tail), //TODO need to make this IO
+      });
 
-      let e1_node = BoardNode::PassThrough {
+      let e1_node = Rc::new(BoardNode::PassThrough {
         spot: empty_space.pop().unwrap(),
-        next: Box::new(e2_node) 
-      };
+        next: Rc::clone(&e2_node),
+      });
 
-      let e0_node = BoardNode::PassThrough {
+      let e0_node = Rc::new(BoardNode::PassThrough {
         spot: empty_space.pop().unwrap(),
-        next: Box::new(e1_node) 
-      };
+        next: e1_node, 
+      });
 
-      let io_node = BoardNode::Merge {
+      let io_node = Rc::new(BoardNode::Merge {
         spot: io,
-        next: Box::new(e0_node) 
-      };
+        next: e0_node,
+      });
 
-      let moon_node = BoardNode::PassThrough {
+      let moon_node = Rc::new(BoardNode::PassThrough {
         spot: moon,
-        next: Box::new(io_node) 
-      };
+        next: Rc::clone(&io_node),
+      });
       
-      let earth_node = BoardNode::PassThrough {
+      let earth_node = Rc::new(BoardNode::PassThrough {
         spot: earth,
-        next: Box::new(moon_node),
+        next: moon_node,
+      });
+
+      match &*e2_node {
+        BoardNode::Fork { mut continue_orbit, .. } => continue_orbit = Rc::clone(&io_node),
+        _ => panic!("durr"),
       };
 
       // link up e2 to Io
-      let current_node = &earth_node;
-      while true {
-        let spot = current_node.spot();
-        let io;
-        if spot.to_string() == "Io" {
-          io = current_node;
-        };
-        if spot.to_string() == "empty_space_2" {
-          if let BoardNode::Fork { spot, escape_orbit, continue_orbit } = current_node {
-            continue_orbit = &io;
-            break;
-          } else {
-            panic!("we expected to find io and empty_space_2, but did not");
-          }
-        }
-      }
+      // let current_node = &earth_node;
+      // while true {
+      //   let spot = current_node.spot();
+      //   let io;
+      //   if spot.to_string() == "Io" {
+      //     io = current_node;
+      //   };
+      //   if spot.to_string() == "empty_space_2" {
+      //     if let BoardNode::Fork { spot, escape_orbit, continue_orbit } = current_node {
+      //       continue_orbit = &io;
+      //       break;
+      //     } else {
+      //       panic!("we expected to find io and empty_space_2, but did not");
+      //     }
+      //   }
+      // }
 
       let board_path = BoardPath {
         start: earth_node
@@ -313,18 +319,18 @@ use std::mem::take;
     }
   }
 
-  struct BoardPath<'a> {
-    start: BoardNode<'a>,
+  struct BoardPath {
+    start: Rc<BoardNode>,
   }
 
-  enum BoardNode<'a> {
-    PassThrough { spot: Spot, next: Box<BoardNode<'a>> },
-    Fork { spot: Spot, escape_orbit: Box<BoardNode<'a>>, continue_orbit: &'a BoardNode<'a> },
-    Merge { spot: Spot, next: Box<BoardNode<'a>> },
+  enum BoardNode {
+    PassThrough { spot: Spot, next: Rc<BoardNode> },
+    Fork { spot: Spot, escape_orbit: Rc<BoardNode>, continue_orbit: Rc<BoardNode> },
+    Merge { spot: Spot, next: Rc<BoardNode> },
     Tail,
   }
 
-  impl <'a> BoardNode<'a> {
+  impl <'a> BoardNode {
     fn spot(&self) -> &Spot {
       match self {
         BoardNode::PassThrough { spot, .. } => spot,
@@ -336,7 +342,7 @@ use std::mem::take;
   }
 
   pub struct PlayerCursor<'a> {
-    current_board_node: &'a BoardNode<'a>,
+    current_board_node: &'a BoardNode,
   }
 
   impl <'a> PlayerCursor<'a> {
