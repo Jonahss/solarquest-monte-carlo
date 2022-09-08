@@ -9,8 +9,6 @@ fn main() {
   println!("{}", a.0+b.0);
 
   // todo: maybe Landable or Spot should be a trait and I should have a specific type for each kind of spot, rather than them being variants of an enum 
-  
-  let board = Board::new_nested_loop();
 }
 
 mod main {
@@ -194,16 +192,48 @@ use std::mem::take;
       PlayerCursor { current_board_node: &self.board_path.start }
     }
 
-   
-    //fn find_node<'b> (&'b mut self, name: &SolarID) -> &Spot {
-      // let spot = self.spots.get(name);
-      // match spot {
-      //   Some(spot) => spot,
-      //   None => {
-      //     panic!("No spot was created for SolarID {:?}", name);
-      //   }
-      // }
-    //}
+    // Warning, this method searches by traversing the board, but only takes the escape_orbit branch of forks.
+    // So some nodes can never be found this way.
+    // TODO fix this
+    fn find_node (&self, query: &SolarID) -> &BoardNode {
+      let mut current_node = &self.board_path.start;
+      loop {
+        let spot = current_node.spot();
+        match spot {
+          Spot::EmptySpace { name } |
+          Spot::GravityWell { name } |
+          Spot::FederationStation { name, .. } => {
+            if name == query {
+              return current_node;
+            };
+          },
+          Spot::Planet(prop) |
+          Spot::Moon(prop) |
+          Spot::SpaceDock(prop) |
+          Spot::ResearchLab(prop) |
+          Spot::Earth(prop) => {
+            if &prop.name == query {
+              return current_node;
+            }
+          }
+        }
+        match current_node {
+          BoardNode::PassThrough { next, ..} |
+          BoardNode::Merge { next, .. } => {
+            current_node = next;
+          },
+          BoardNode::Fork { escape_orbit, .. } => current_node = &escape_orbit,
+          _ => (),
+        }
+      };
+    }
+
+    // WARNING: this method searches by traversing the board, but only takes the escape_orbit branch of forks.
+    // So some nodes can never be found this way.
+    // TODO fix this
+    pub fn find_spot(&self, query: &SolarID) -> &Spot {
+      self.find_node(query).spot()
+    }
 
     pub fn move_player (&'a self, player: &'a mut PlayerCursor<'a>, amount: u16) -> &'a mut PlayerCursor {
       let mut movement_remaining = amount;
@@ -348,6 +378,7 @@ use std::mem::take;
     start: BoardNode<'a>,
   }
 
+  #[derive(Debug)]
   enum BoardNode<'a> {
     PassThrough { spot: Spot, next: Box<BoardNode<'a>> },
     Fork { spot: Spot, escape_orbit: Box<BoardNode<'a>>, continue_orbit: &'a BoardNode<'a> },
@@ -459,6 +490,7 @@ use std::mem::take;
 #[cfg(test)]
 mod tests {
   use crate::Board;
+  use crate::SolarID;
     #[test]
     fn single_loop_board() {
       let board = Board::new_single_loop();
@@ -477,6 +509,12 @@ mod tests {
 
       let player_1 = board.move_player(player_1, 3);
       assert_eq!(player_1.current_spot().to_string(), "Moon");
+    }
+
+    #[test]
+    fn find_node() {
+      let board = Board::new_nested_loop();
+      let io = board.find_spot(&SolarID::Io);
     }
 
     #[test]
