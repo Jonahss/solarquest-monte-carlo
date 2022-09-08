@@ -92,16 +92,15 @@ mod main {
         monopoly: Monopoly::Venus,
       });
 
-      // TODO: use `map`?
-      let mut empty_space: Vec<Spot> = Vec::new();
-      for i in vec![SolarID::EmptySpace0, SolarID::EmptySpace1, SolarID::EmptySpace2] {
-        empty_space.push(Spot::EmptySpace { name: i });
-      };
-
-      let mut gravity_wells: Vec<Spot> = Vec::new();
-      for i in vec![SolarID::EmptySpace0, SolarID::EmptySpace1, SolarID::EmptySpace2] {
-        gravity_wells.push(Spot::GravityWell { name: i });
-      };
+      let mut empty_space: Vec<Spot> = vec![SolarID::EmptySpace0, SolarID::EmptySpace1, SolarID::EmptySpace2]
+        .into_iter()
+        .map(move |id| Spot::EmptySpace { name: id })
+        .collect();
+      
+      let mut gravity_wells: Vec<Spot> = vec![SolarID::GravityWell0, SolarID::GravityWell1, SolarID::GravityWell2]
+      .into_iter()
+      .map(move |id| Spot::GravityWell { name: id })
+      .collect();
 
       let venus_node = BoardNode::PassThrough {
         spot: venus,
@@ -126,7 +125,7 @@ mod main {
       let e2_node = BoardNode::Fork {
         spot: empty_space.pop().unwrap(),
         escape_orbit: Box::new(gw0_node),
-        continue_orbit: (&BoardNode::Link(SolarID::Io)), //TODO need to make this IO
+        continue_orbit: (&BoardNode::Link(SolarID::Io)),
       };
 
       let e1_node = BoardNode::PassThrough {
@@ -163,6 +162,29 @@ mod main {
         players: vec![],
       }
     }
+
+    // pub fn new_full_board() -> Board<'a> {
+    //   let earth = Spot::Planet (Property {
+    //     name: SolarID::Earth,
+    //     monopoly: Monopoly::Earth,
+    //   });
+
+    //   let moon = Spot::Planet (Property {
+    //     name: SolarID::Moon,
+    //     monopoly: Monopoly::Earth,
+    //   });
+    //   // todo: constructor for Property, fill rent_table with None
+
+    //   let io = Spot::Planet (Property {
+    //     name: SolarID::Io,
+    //     monopoly: Monopoly::Jupiter,
+    //   });
+
+    //   let venus = Spot::Planet (Property {
+    //     name: SolarID::Venus,
+    //     monopoly: Monopoly::Venus,
+    //   });
+    // }
 
     pub fn new_player(&'a self) -> PlayerCursor<'a> {
       PlayerCursor { current_board_node: &self.board_path.start }
