@@ -287,29 +287,7 @@ use std::mem::take;
             };
           },
           BoardNode::Tail => current_node = &self.board_path.start,
-          BoardNode::E2_Tail => {
-            // link up e2 to Io
-            let mut io = &self.board_path.start;
-            {
-              let mut current_node = &self.board_path.start;
-              loop {
-                let spot = current_node.spot();
-                if spot.to_string() == "Io" {
-                  io = current_node;
-                  break;
-                };
-                match current_node {
-                  BoardNode::PassThrough { next, ..} |
-                  BoardNode::Merge { next, .. } => {
-                    current_node = next;
-                  },
-                  BoardNode::Fork { escape_orbit, .. } => current_node = &escape_orbit,
-                  _ => (),
-                    }
-              };
-            }
-            current_node = io;
-          },
+          BoardNode::E2_Tail => current_node = self.find_node(&SolarID::Io),
         }
 
         // rewind if we land on a gravity well
@@ -342,29 +320,7 @@ use std::mem::take;
       // loop to first node, if we end on the Tail
       match current_node {
         BoardNode::Tail => current_node = &self.board_path.start,
-        BoardNode::E2_Tail => {
-          // link up e2 to Io
-          let mut io = &self.board_path.start;
-          {
-            let mut current_node = &self.board_path.start;
-            loop {
-              let spot = current_node.spot();
-              if spot.to_string() == "Io" {
-                io = current_node;
-                break;
-              };
-              match current_node {
-                BoardNode::PassThrough { next, ..} |
-                BoardNode::Merge { next, .. } => {
-                  current_node = next;
-                },
-                BoardNode::Fork { escape_orbit, .. } => current_node = &escape_orbit,
-                _ => (),
-                  }
-            };
-          }
-          current_node = io;
-        },
+        BoardNode::E2_Tail => current_node = &self.find_node(&SolarID::Io),
         _ => (),
       };
 
