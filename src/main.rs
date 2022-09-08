@@ -15,7 +15,7 @@ mod main {
   use crate::main::Spot::*;
   use std::collections::HashMap;
   use std::fmt;
-use std::mem::take;
+  use std::mem::take;
 
   #[derive(PartialEq, Eq, Hash, Debug)]
   pub enum SolarID {
@@ -61,7 +61,7 @@ use std::mem::take;
 
       let moon_node = BoardNode::PassThrough {
         spot: moon,
-        next: Box::new(BoardNode::Tail),
+        next: Box::new(BoardNode::Link(SolarID::Earth)),
       };
       let earth_node = BoardNode::PassThrough {
         spot: earth,
@@ -129,7 +129,7 @@ use std::mem::take;
 
       let venus_node = BoardNode::PassThrough {
         spot: venus,
-        next: Box::new(BoardNode::Tail),
+        next: Box::new(BoardNode::Link(SolarID::Earth)),
       };
       
       let gw2_node = BoardNode::PassThrough {
@@ -150,7 +150,7 @@ use std::mem::take;
       let e2_node = BoardNode::Fork {
         spot: empty_space.pop().unwrap(),
         escape_orbit: Box::new(gw0_node),
-        continue_orbit: (&BoardNode::E2_Tail), //TODO need to make this IO
+        continue_orbit: (&BoardNode::Link(SolarID::Io)), //TODO need to make this IO
       };
 
       let e1_node = BoardNode::PassThrough {
@@ -286,8 +286,7 @@ use std::mem::take;
               moves_since_last_fork += 1;
             };
           },
-          BoardNode::Tail => current_node = &self.board_path.start,
-          BoardNode::E2_Tail => current_node = self.find_node(&SolarID::Io),
+          BoardNode::Link(name) => current_node = &self.find_node(name),
         }
 
         // rewind if we land on a gravity well
@@ -319,8 +318,7 @@ use std::mem::take;
 
       // loop to first node, if we end on the Tail
       match current_node {
-        BoardNode::Tail => current_node = &self.board_path.start,
-        BoardNode::E2_Tail => current_node = &self.find_node(&SolarID::Io),
+        BoardNode::Link(name) => current_node = &self.find_node(name),
         _ => (),
       };
 
@@ -339,8 +337,7 @@ use std::mem::take;
     PassThrough { spot: Spot, next: Box<BoardNode<'a>> },
     Fork { spot: Spot, escape_orbit: Box<BoardNode<'a>>, continue_orbit: &'a BoardNode<'a> },
     Merge { spot: Spot, next: Box<BoardNode<'a>> },
-    Tail,
-    E2_Tail,
+    Link(SolarID), // shadow node to link up a cyle, tail to head. Tuple value refers to the Head to link to, but we link manually in the `Board::move()` method 
   }
 
   impl <'a> BoardNode<'a> {
@@ -500,5 +497,14 @@ mod tests {
 
       let player_1 = board.move_player(player_1, 6);
       assert_eq!(player_1.current_spot().to_string(), "EmptySpace2");
+
+      let player_1 = board.move_player(player_1, 7);
+      assert_eq!(player_1.current_spot().to_string(), "Io");
+
+      let player_1 = board.move_player(player_1, 6);
+      assert_eq!(player_1.current_spot().to_string(), "EmptySpace1");
+
+      let player_1 = board.move_player(player_1, 12);
+      assert_eq!(player_1.current_spot().to_string(), "Io");
     }
 }
