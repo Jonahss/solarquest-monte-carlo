@@ -43,19 +43,11 @@ mod main {
       let earth = Spot::Planet (Property {
         name: SolarID::Earth,
         monopoly: Monopoly::Earth,
-        rent_table: [
-          Option::Some((Fedron(100), Hydron(5))),
-          Option::Some((Fedron(500), Hydron(10))),
-        ],
       });
 
       let moon = Spot::Planet (Property {
         name: SolarID::Moon,
         monopoly: Monopoly::Earth,
-        rent_table: [
-          Option::Some((Fedron(100), Hydron(5))),
-          Option::Some((Fedron(500), Hydron(10))),
-        ],
       });
       // todo: constructor for Property, fill rent_table with None
 
@@ -82,38 +74,22 @@ mod main {
       let earth = Spot::Planet (Property {
         name: SolarID::Earth,
         monopoly: Monopoly::Earth,
-        rent_table: [
-          Option::Some((Fedron(100), Hydron(5))),
-          Option::Some((Fedron(500), Hydron(10))),
-        ],
       });
 
       let moon = Spot::Planet (Property {
         name: SolarID::Moon,
         monopoly: Monopoly::Earth,
-        rent_table: [
-          Option::Some((Fedron(100), Hydron(5))),
-          Option::Some((Fedron(500), Hydron(10))),
-        ],
       });
       // todo: constructor for Property, fill rent_table with None
 
       let io = Spot::Planet (Property {
         name: SolarID::Io,
         monopoly: Monopoly::Jupiter,
-        rent_table: [
-          Option::Some((Fedron(100), Hydron(5))),
-          Option::Some((Fedron(500), Hydron(10))),
-        ],
       });
 
       let venus = Spot::Planet (Property {
         name: SolarID::Venus,
         monopoly: Monopoly::Venus,
-        rent_table: [
-          Option::Some((Fedron(100), Hydron(5))),
-          Option::Some((Fedron(500), Hydron(10))),
-        ],
       });
 
       // TODO: use `map`?
@@ -386,16 +362,16 @@ mod main {
   pub struct Property {
     pub name: SolarID,
     pub monopoly: Monopoly,
-    pub rent_table: [Option<(Fedron, Hydron)>; 2],
+    //pub rent_table: [Option<(Fedron, Hydron)>; 2],
   }
 
   impl Property {
-    fn calculate_rent (&self, holdings: Vec<&Property>) -> Fedron {
-      let num_properties_in_monopoly = holdings.iter().filter(|property| property.monopoly == self.monopoly).count();
-      self.rent_table[num_properties_in_monopoly]
-        .unwrap_or_else(|| panic!("Tried to access rent for level {} on {:?} but there are not that many, you are a fraud!", num_properties_in_monopoly, self.monopoly))
-        .0
-    }
+    // fn calculate_rent (&self, holdings: Vec<&Property>) -> Fedron {
+    //   let num_properties_in_monopoly = holdings.iter().filter(|property| property.monopoly == self.monopoly).count();
+    //   self.rent_table[num_properties_in_monopoly]
+    //     .unwrap_or_else(|| panic!("Tried to access rent for level {} on {:?} but there are not that many, you are a fraud!", num_properties_in_monopoly, self.monopoly))
+    //     .0
+    // }
   }
 
   #[derive(Debug, Clone, Copy)]
