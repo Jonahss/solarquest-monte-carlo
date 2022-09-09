@@ -885,4 +885,42 @@ mod tests {
       let player_1 = board.move_player(player_1, 12);
       assert_eq!(player_1.current_spot().to_string(), "Io");
     }
+
+    #[test]
+    fn full_board() {
+      let board = Board::new_full_board();
+
+      let player_1 = &mut board.new_player();
+      assert_eq!(player_1.current_spot().to_string(), "Earth");
+
+      let player_1 = board.move_player(player_1, 1);
+      assert_eq!(player_1.current_spot().to_string(), "Earth");
+
+      let player_1 = board.move_player(player_1, 2);
+      assert_eq!(player_1.current_spot().to_string(), "Moon");
+
+      let player_1 = board.move_player(player_1, 3);
+      assert_eq!(player_1.current_spot().to_string(), "FederationStationI");
+
+      let player_1 = board.move_player(player_1, 1);
+      assert_eq!(player_1.current_spot().to_string(), "EmptySpace0");
+
+      let player_1 = board.move_player(player_1, 6);
+      assert_eq!(player_1.current_spot().to_string(), "Callisto");
+
+      let player_1 = board.move_player(player_1, 12);
+      assert_eq!(player_1.current_spot().to_string(), "EmptySpace4");
+
+      let player_1 = board.move_player(player_1, 9);
+      assert_eq!(player_1.current_spot().to_string(), "FederationStationIV");
+
+      let player_1 = board.move_player(player_1, 23);
+      assert_eq!(player_1.current_spot().to_string(), "VenusResearchLab");
+
+      let player_1 = board.move_player(player_1, 31);
+      assert_eq!(player_1.current_spot().to_string(), "Naiad");
+
+      let player_1 = board.move_player(player_1, 16);
+      assert_eq!(player_1.current_spot().to_string(), "Moon");
+    }
 }
