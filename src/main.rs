@@ -11,7 +11,7 @@ fn main() {
   let mercury = planet!(SolarID::Mercury, Monopoly::Mercury);
   println!("{:?}", mercury);
 
-  let board = Board::new_full_board();
+  //let board = Board::new_full_board();
 
   // todo: maybe Landable or Spot should be a trait and I should have a specific type for each kind of spot, rather than them being variants of an enum 
 }
@@ -141,7 +141,7 @@ mod main {
   }
   
   pub struct Board<'a> {
-    board_path: BoardPath<'a>,
+    board_path: BoardPath,
     players: Vec<PlayerCursor<'a>>,
   }
 
@@ -232,7 +232,7 @@ mod main {
       let e2_node = BoardNode::Fork {
         spot: empty_space.pop().unwrap(),
         escape_orbit: Box::new(gw0_node),
-        continue_orbit: (&BoardNode::Link(SolarID::Io)),
+        continue_orbit: Box::new(BoardNode::Link(SolarID::Io)),
       };
 
       let e1_node = BoardNode::PassThrough {
@@ -644,19 +644,19 @@ mod main {
     }
   }
 
-  struct BoardPath<'a> {
-    start: BoardNode<'a>,
+  struct BoardPath {
+    start: BoardNode,
   }
 
   #[derive(Debug)]
-  enum BoardNode<'a> {
-    PassThrough { spot: Spot, next: Box<BoardNode<'a>> },
-    Fork { spot: Spot, escape_orbit: Box<BoardNode<'a>>, continue_orbit: &'a BoardNode<'a> },
-    Merge { spot: Spot, next: Box<BoardNode<'a>> },
+  enum BoardNode {
+    PassThrough { spot: Spot, next: Box<BoardNode> },
+    Fork { spot: Spot, escape_orbit: Box<BoardNode>, continue_orbit: Box<BoardNode> },
+    Merge { spot: Spot, next: Box<BoardNode> },
     Link(SolarID), // shadow node to link up a cyle, tail to head. Tuple value refers to the Head to link to, but we link manually in the `Board::move()` method 
   }
 
-  impl <'a> BoardNode<'a> {
+  impl <'a> BoardNode {
     fn spot(&self) -> &Spot {
       match self {
         BoardNode::PassThrough { spot, .. } => spot,
@@ -668,7 +668,7 @@ mod main {
   }
 
   pub struct PlayerCursor<'a> {
-    current_board_node: &'a BoardNode<'a>,
+    current_board_node: &'a BoardNode,
   }
 
   impl <'a> PlayerCursor<'a> {
