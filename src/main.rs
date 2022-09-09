@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::main::*;
 
 fn main() {
@@ -10,7 +12,34 @@ fn main() {
 
   let board = Board::new_full_board();
 
-  // todo: maybe Landable or Spot should be a trait and I should have a specific type for each kind of spot, rather than them being variants of an enum 
+  let land_rate: HashMap<SolarID, u128> = HashMap::new();
+  let num_players = 1;
+  let rounds = 10;
+  let mut players: Vec<PlayerCursor> = (0..num_players).map(|_| board.new_player()).collect();
+  
+ // for turn in 0..rounds {
+    let mut players_to_move = players.clone();
+    players = players_to_move.iter_mut().map(|mut player| {
+      let roll = 1; //todo: roll dice, handle doubles, handle thirteen
+      let player = board.move_player(player, roll);
+      //println!("player rolled {} on turn {} and landed on {}", roll, turn, player.current_spot());
+      //let count = land_rate.entry(player.current_spot().id()).or_insert(0);
+      //*count += 1;
+      player.to_owned()
+    }).collect();
+
+    let mut players_to_move = players.clone();
+    players = players_to_move.iter_mut().map(|mut player| {
+      let roll = 1; //todo: roll dice, handle doubles, handle thirteen
+      let player = board.move_player(player, roll);
+      //println!("player rolled {} on turn {} and landed on {}", roll, turn, player.current_spot());
+      //let count = land_rate.entry(player.current_spot().id()).or_insert(0);
+      //*count += 1;
+      player.to_owned()
+    }).collect();
+ // }
+
+
 }
 
 #[macro_export]
@@ -89,7 +118,7 @@ mod main {
   use std::fmt;
   use std::mem::take;
 
-  #[derive(PartialEq, Eq, Hash, Debug)]
+  #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
   pub enum SolarID {
     Earth,
     Mercury,
@@ -737,6 +766,7 @@ mod main {
     }
   }
 
+  #[derive(Copy, Clone)]
   pub struct PlayerCursor<'a> {
     current_board_node: &'a BoardNode,
   }
@@ -799,6 +829,21 @@ mod main {
     SpaceDock(Property),
     ResearchLab(Property),
     Earth {name: SolarID, reward: Fedron, passing_reward: Fedron}, // todo: use it
+  }
+
+  impl Spot {
+    pub fn id(&self) -> SolarID {
+      match &self {
+        EmptySpace { name } => *name,
+        GravityWell { name } => *name,
+        FederationStation { name, .. } => *name,
+        Planet(prop) => prop.name,
+        Moon(prop) => prop.name,
+        SpaceDock(prop) => prop.name,
+        ResearchLab(prop) => prop.name,
+        Earth { name, .. } => *name,
+      }
+    }
   }
 
   impl fmt::Display for Spot {
