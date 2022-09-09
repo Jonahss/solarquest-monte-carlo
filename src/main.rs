@@ -8,7 +8,52 @@ fn main() {
 
   println!("{}", a.0+b.0);
 
+  let mercury = planet!(SolarID::Mercury, Monopoly::Mercury);
+  println!("{:?}", mercury);
+
+  let board = Board::new_full_board();
+
   // todo: maybe Landable or Spot should be a trait and I should have a specific type for each kind of spot, rather than them being variants of an enum 
+}
+
+#[macro_export]
+macro_rules! planet {
+    ( $name:expr, $monopoly:expr ) => {
+      Spot::Planet (Property {
+        name: $name,
+        monopoly: $monopoly,
+      });
+    };
+}
+
+#[macro_export]
+macro_rules! moon {
+    ( $name:expr, $monopoly:expr ) => {
+      Spot::Moon (Property {
+        name: $name,
+        monopoly: $monopoly,
+      });
+    };
+}
+
+#[macro_export]
+macro_rules! spaceDock {
+    ( $name:expr, $monopoly:expr ) => {
+      Spot::SpaceDock (Property {
+        name: $name,
+        monopoly: $monopoly,
+      });
+    };
+}
+
+#[macro_export]
+macro_rules! researchLab {
+    ( $name:expr, $monopoly:expr ) => {
+      Spot::ResearchLab (Property {
+        name: $name,
+        monopoly: $monopoly,
+      });
+    };
 }
 
 mod main {
@@ -20,17 +65,79 @@ mod main {
   #[derive(PartialEq, Eq, Hash, Debug)]
   pub enum SolarID {
     Earth,
-    Moon,
-    JupiterSpaceDock,
-    Io,
+    Mercury,
     Venus,
+    Moon,
+    Pluto,
+    Charon,
+    Triton,
+    Proteus,
+    Nereid,
+    Galatea,
+    Despina,
+    Thalassa,
+    Larissa,
+    Naiad,
+    Enceladus,
+    Mimas,
+    Iapetus,
+    Phoebe,
+    Tethys,
+    Hyperion,
+    Rhea,
+    Janus,
+    Dione,
+    Titan,
+    Europa,
+    Thebe,
+    Himalia,
+    Metis,
+    Io,
+    Amalthea,
+    Sinope,
+    Callisto,
+    Adrastea,
     Ganymede,
+    Elara,
+    Miranda,
+    Ariel,
+    Umbriel,
+    Portia,
+    Oberon,
+    Titania,
+    Phobos,
+    Mars,
+    Deimos,
+    JupiterResearchLab,
+    SaturnResearchLab,
+    EarthResearchLab,
+    VenusResearchLab,
+    NeptuneResearchLab,
+    UranusResearchLab,
+    JupiterSpaceDock,
+    SaturnSpaceDock,
+    NeptuneSpaceDock,
+    SolarSpaceDock,
+    UranusSpaceDock,
     EmptySpace0,
     EmptySpace1,
     EmptySpace2,
     GravityWell0,
     GravityWell1,
     GravityWell2,
+    GravityWell3,
+    GravityWell4,
+    GravityWell5,
+    GravityWell6,
+    GravityWell7,
+    GravityWell8,
+    GravityWell9,
+    GravityWell10,
+    GravityWell11,
+    GravityWell12,
+    GravityWell13,
+    GravityWell14,
+    GravityWell15,
   }
   
   pub struct Board<'a> {
@@ -164,6 +271,155 @@ mod main {
     }
 
     // pub fn new_full_board() -> Board<'a> {
+
+    //   let mercury = planet!(SolarID::Mercury, Monopoly::Mercury);
+    //   let venus = planet!(SolarID::Venus, Monopoly::Venus);
+    //   let moon = moon!(SolarID::Moon, Monopoly::Earth);
+    //   let pluto = planet!(SolarID::Pluto, Monopoly::Pluto);
+    //   let charon = moon!(SolarID::Charon, Monopoly::Pluto);
+    //   let triton = moon!(SolarID::Triton, Monopoly::Neptune);
+    //   let proteus = moon!(SolarID::Proteus, Monopoly::Neptune);
+    //   let nereid = moon!(SolarID::Nereid, Monopoly::Neptune);
+    //   let galatea = moon!(SolarID::Galatea, Monopoly::Neptune);
+    //   let despina = moon!(SolarID::Despina, Monopoly::Neptune);
+    //   let thalassa = moon!(SolarID::Thalassa, Monopoly::Neptune);
+    //   let larissa = moon!(SolarID::Larissa, Monopoly::Neptune);
+    //   let naiad = moon!(SolarID::Naiad, Monopoly::Neptune);
+    //   let enceladus = moon!(SolarID::Enceladus, Monopoly::Saturn);
+    //   let mimas = moon!(SolarID::Mimas, Monopoly::Saturn);
+    //   let iapetus = moon!(SolarID::Iapetus, Monopoly::Saturn);
+    //   let phoebe = moon!(SolarID::Phoebe, Monopoly::Saturn);
+    //   let tethys = moon!(SolarID::Tethys, Monopoly::Saturn);
+    //   let hyperion = moon!(SolarID::Hyperion, Monopoly::Saturn);
+    //   let rhea = moon!(SolarID::Rhea, Monopoly::Saturn);
+    //   let janus = moon!(SolarID::Janus, Monopoly::Saturn);
+    //   let dione = moon!(SolarID::Dione, Monopoly::Saturn);
+    //   let titan = moon!(SolarID::Titan, Monopoly::Saturn);
+    //   let europa = moon!(SolarID::Europa, Monopoly::Jupiter);
+    //   let thebe = moon!(SolarID::Thebe, Monopoly::Jupiter);
+    //   let himalia = moon!(SolarID::Himalia, Monopoly::Jupiter);
+    //   let metis = moon!(SolarID::Metis, Monopoly::Jupiter);
+    //   let io = moon!(SolarID::Io, Monopoly::Jupiter);
+    //   let amalthea = moon!(SolarID::Amalthea, Monopoly::Jupiter);
+    //   let sinope = moon!(SolarID::Sinope, Monopoly::Jupiter);
+    //   let callisto = moon!(SolarID::Callisto, Monopoly::Jupiter);
+    //   let adrastea = moon!(SolarID::Adrastea, Monopoly::Jupiter);
+    //   let ganymede = moon!(SolarID::Ganymede, Monopoly::Jupiter);
+    //   let elara = moon!(SolarID::Elara, Monopoly::Jupiter);
+    //   let miranda = moon!(SolarID::Miranda, Monopoly::Uranus);
+    //   let ariel = moon!(SolarID::Ariel, Monopoly::Uranus);
+    //   let umbriel = moon!(SolarID::Umbriel, Monopoly::Uranus);
+    //   let portia = moon!(SolarID::Portia, Monopoly::Uranus);
+    //   let oberon = moon!(SolarID::Oberon, Monopoly::Uranus);
+    //   let titania = moon!(SolarID::Titania, Monopoly::Uranus);
+    //   let phobos = moon!(SolarID::Phobos, Monopoly::Mars);
+    //   let mars = planet!(SolarID::Mars, Monopoly::Mars);
+    //   let deimos = planet!(SolarID::Deimos, Monopoly::Mars);
+    //   let jupiter_research_lab = researchLab!(SolarID::JupiterResearchLab, Monopoly::ResearchLab);
+    //   let saturn_research_lab = researchLab!(SolarID::SaturnResearchLab, Monopoly::ResearchLab);
+    //   let earth_research_lab = researchLab!(SolarID::EarthResearchLab, Monopoly::ResearchLab);
+    //   let venus_research_lab = researchLab!(SolarID::VenusResearchLab, Monopoly::ResearchLab);
+    //   let neptune_research_lab = researchLab!(SolarID::NeptuneResearchLab, Monopoly::ResearchLab);
+    //   let uranus_research_lab = researchLab!(SolarID::UranusResearchLab, Monopoly::ResearchLab);
+    //   let jupiter_space_dock = spaceDock!(SolarID::JupiterSpaceDock, Monopoly::SpaceDock);
+    //   let saturn_space_dock = spaceDock!(SolarID::SaturnSpaceDock, Monopoly::SpaceDock);
+    //   let neptune_space_dock = spaceDock!(SolarID::NeptuneSpaceDock, Monopoly::SpaceDock);
+    //   let solar_space_dock = spaceDock!(SolarID::SolarSpaceDock, Monopoly::SpaceDock);
+    //   let uranus_space_dock = spaceDock!(SolarID::UranusSpaceDock, Monopoly::SpaceDock);
+
+    //   let mut empty_space: Vec<Spot> = vec![
+    //       SolarID::EmptySpace0,
+    //       SolarID::EmptySpace1,
+    //       SolarID::EmptySpace2
+    //     ]
+    //     .into_iter()
+    //     .map(move |id| Spot::EmptySpace { name: id })
+    //     .collect();
+      
+    //   let mut gravity_wells: Vec<Spot> = vec![
+    //     SolarID::GravityWell0,
+    //     SolarID::GravityWell1,
+    //     SolarID::GravityWell2,
+    //     SolarID::GravityWell3,
+    //     SolarID::GravityWell4,
+    //     SolarID::GravityWell5,
+    //     SolarID::GravityWell6,
+    //     SolarID::GravityWell7,
+    //     SolarID::GravityWell8,
+    //     SolarID::GravityWell9,
+    //     SolarID::GravityWell10,
+    //     SolarID::GravityWell11,
+    //     SolarID::GravityWell12,
+    //     SolarID::GravityWell13,
+    //     SolarID::GravityWell14,
+    //     SolarID::GravityWell15,
+    //     ]
+    //     .into_iter()
+    //     .map(move |id| Spot::GravityWell { name: id })
+    //     .collect();
+
+
+    //   let earth_research_lab = BoardNode::PassThrough {
+    //     spot: earth_research_lab,
+    //     next: Box::new(BoardNode::Link(SolarID::Earth)),
+    //   };
+    //   let gravity_well = BoardNode::PassThrough {
+    //     spot: gravity_wells.pop().unwrap(),
+    //     next: Box::new(earth_research_lab),
+    //   };
+    //   let gravity_well = BoardNode::PassThrough {
+    //     spot: gravity_wells.pop().unwrap(),
+    //     next: Box::new(gravity_well),
+    //   };
+    //   let gravity_well = BoardNode::PassThrough {
+    //     spot: gravity_wells.pop().unwrap(),
+    //     next: Box::new(gravity_well),
+    //   };
+      
+    //   let naiad = BoardNode::PassThrough {
+    //     spot: naiad,
+    //     next: Box::new(BoardNode::Link(SolarID::Nereid)),
+    //   };
+
+    //   let galatea = BoardNode::Fork {
+    //     spot: galatea,
+    //     escape_orbit: Box::new(gravity_well),
+    //     continue_orbit: Box::new(naiad),
+    //   };
+
+
+
+    //   let adrastea = BoardNode::PassThrough {
+    //     spot: adrastea,
+    //     next: Box::new(BoardNode::Link(SolarID::Io)),
+    //   };
+    //   let amalthea = BoardNode::PassThrough {
+    //     spot: amalthea,
+    //     next: Box::new(adrastea),
+    //   };
+    //   let europa = BoardNode::PassThrough {
+    //     spot: europa,
+    //     next: Box::new(amalthea),
+    //   };
+    //   let himalia = BoardNode::PassThrough {
+    //     spot: himalia,
+    //     next: Box::new(europa),
+    //   };
+    //   let jupiter_research_lab = BoardNode::PassThrough {
+    //     spot: jupiter_research_lab,
+    //     next: Box::new(himalia),
+    //   };
+    //   // let ganymede = BoardNode::Fork {
+    //   //   spot: ganymede,
+    //   //   escape_orbit:
+    //   //   sinope,
+    //   //   continue_orbit: Box::new(jupiter_research_lab)
+    //   // };
+
+
+    
+
+
     //   let earth = Spot::Planet (Property {
     //     name: SolarID::Earth,
     //     monopoly: Monopoly::Earth,
@@ -184,6 +440,68 @@ mod main {
     //     name: SolarID::Venus,
     //     monopoly: Monopoly::Venus,
     //   });
+
+      
+
+    //   let venus_node = BoardNode::PassThrough {
+    //     spot: venus,
+    //     next: Box::new(BoardNode::Link(SolarID::Earth)),
+    //   };
+      
+    //   let gw2_node = BoardNode::PassThrough {
+    //     spot: gravity_wells.pop().unwrap(),
+    //     next: Box::new(venus_node) 
+    //   };
+
+    //   let gw1_node = BoardNode::PassThrough {
+    //     spot: gravity_wells.pop().unwrap(),
+    //     next: Box::new(gw2_node) 
+    //   };
+
+    //   let gw0_node = BoardNode::PassThrough {
+    //     spot: gravity_wells.pop().unwrap(),
+    //     next: Box::new(gw1_node) 
+    //   };
+
+    //   let e2_node = BoardNode::Fork {
+    //     spot: empty_space.pop().unwrap(),
+    //     escape_orbit: Box::new(gw0_node),
+    //     continue_orbit: (&BoardNode::Link(SolarID::Io)),
+    //   };
+
+    //   let e1_node = BoardNode::PassThrough {
+    //     spot: empty_space.pop().unwrap(),
+    //     next: Box::new(e2_node) 
+    //   };
+
+    //   let e0_node = BoardNode::PassThrough {
+    //     spot: empty_space.pop().unwrap(),
+    //     next: Box::new(e1_node) 
+    //   };
+
+    //   let io_node = BoardNode::Merge {
+    //     spot: io,
+    //     next: Box::new(e0_node) 
+    //   };
+
+    //   let moon_node = BoardNode::PassThrough {
+    //     spot: moon,
+    //     next: Box::new(io_node) 
+    //   };
+      
+    //   let earth_node = BoardNode::PassThrough {
+    //     spot: earth,
+    //     next: Box::new(moon_node),
+    //   };
+
+    //   let board_path = BoardPath {
+    //     start: earth_node
+    //   };
+
+    //   Board {
+    //     board_path,
+    //     players: vec![],
+    //   }
     // }
 
     pub fn new_player(&'a self) -> PlayerCursor<'a> {
