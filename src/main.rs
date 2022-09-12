@@ -213,13 +213,12 @@ mod main {
     GravityWell15,
   }
   
-  pub struct Board<'a> {
+  pub struct Board {
     board_path: BoardPath,
-    players: Vec<PlayerCursor<'a>>,
   }
 
-  impl <'a> Board<'a> {
-    pub fn new_single_loop() -> Board<'a> {
+  impl <'a> Board {
+    pub fn new_single_loop() -> Board {
       let earth = Spot::Planet (Property {
         name: SolarID::Earth,
         monopoly: Monopoly::Earth,
@@ -240,11 +239,10 @@ mod main {
 
       Board {
         board_path,
-        players: vec![],
       }
     }
 
-    pub fn new_nested_loop() -> Board<'a> {
+    pub fn new_nested_loop() -> Board {
       let earth = Spot::Planet (Property {
         name: SolarID::Earth,
         monopoly: Monopoly::Earth,
@@ -333,11 +331,10 @@ mod main {
 
       Board {
         board_path,
-        players: vec![],
       }
     }
 
-    pub fn new_full_board() -> Board<'a> {
+    pub fn new_full_board() -> Board {
 
       let earth = Spot::Earth { name: SolarID::Earth, reward: Fedron(1000), passing_reward: Fedron(500) };
       let mercury = planet!(SolarID::Mercury, Monopoly::Mercury);
@@ -599,7 +596,6 @@ mod main {
 
       Board {
         board_path,
-        players: vec![],
       }
     }
 
