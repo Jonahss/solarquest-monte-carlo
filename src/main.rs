@@ -4,13 +4,6 @@ use crate::main::*;
 use bracket_random::prelude::RandomNumberGenerator;
 
 fn main() {
-  println!("gello");
-  
-  let a = Fedron(5);
-  let b = Fedron(10);
-
-  println!("{}", a.0+b.0);
-
   let mut rng = RandomNumberGenerator::new();
   let mut thirteen_count = 0;
 
