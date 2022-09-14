@@ -10,6 +10,85 @@ fn main() {
   let board = Board::new_full_board();
 
   let mut land_rate: HashMap<SolarID, u128> = HashMap::new();
+  let all_solar_ids: Vec<SolarID> = vec!(
+    SolarID::Earth,
+    SolarID::Mercury,
+    SolarID::Venus,
+    SolarID::Moon,
+    SolarID::Pluto,
+    SolarID::Charon,
+    SolarID::Triton,
+    SolarID::Proteus,
+    SolarID::Nereid,
+    SolarID::Galatea,
+    SolarID::Despina,
+    SolarID::Thalassa,
+    SolarID::Larissa,
+    SolarID::Naiad,
+    SolarID::Enceladus,
+    SolarID::Mimas,
+    SolarID::Iapetus,
+    SolarID::Phoebe,
+    SolarID::Tethys,
+    SolarID::Hyperion,
+    SolarID::Rhea,
+    SolarID::Janus,
+    SolarID::Dione,
+    SolarID::Titan,
+    SolarID::Europa,
+    SolarID::Thebe,
+    SolarID::Himalia,
+    SolarID::Metis,
+    SolarID::Io,
+    SolarID::Amalthea,
+    SolarID::Sinope,
+    SolarID::Callisto,
+    SolarID::Adrastea,
+    SolarID::Ganymede,
+    SolarID::Elara,
+    SolarID::Miranda,
+    SolarID::Ariel,
+    SolarID::Umbriel,
+    SolarID::Portia,
+    SolarID::Oberon,
+    SolarID::Titania,
+    SolarID::Phobos,
+    SolarID::Mars,
+    SolarID::Deimos,
+    SolarID::JupiterResearchLab,
+    SolarID::SaturnResearchLab,
+    SolarID::EarthResearchLab,
+    SolarID::VenusResearchLab,
+    SolarID::NeptuneResearchLab,
+    SolarID::UranusResearchLab,
+    SolarID::JupiterSpaceDock,
+    SolarID::SaturnSpaceDock,
+    SolarID::NeptuneSpaceDock,
+    SolarID::SolarSpaceDock,
+    SolarID::UranusSpaceDock,
+    SolarID::FederationStationI,
+    SolarID::FederationStationII,
+    SolarID::FederationStationIII,
+    SolarID::FederationStationIV,
+    SolarID::FederationStationV,
+    SolarID::FederationStationVI,
+    SolarID::FederationStationVII,
+    SolarID::FederationStationVIII,
+    SolarID::FederationStationIX,
+    SolarID::EmptySpace0,
+    SolarID::EmptySpace1,
+    SolarID::EmptySpace2,
+    SolarID::EmptySpace3,
+    SolarID::EmptySpace4,
+    SolarID::EmptySpace5,
+    SolarID::EmptySpace6,
+    SolarID::EmptySpace7,
+    SolarID::EmptySpace8,
+    SolarID::EmptySpace9,
+    SolarID::EmptySpace10,
+  );
+  all_solar_ids.iter().for_each(|id| { land_rate.insert(*id, 0); });
+
   let num_players = 10_000;
   let rounds = 20 * 2; // about 20 rounds to get around the board once
   let mut players: Vec<PlayerCursor> = (0..num_players).map(|_| board.new_player()).collect();
@@ -41,7 +120,7 @@ fn main() {
   land_rate.sort_unstable_by_key(|pair| pair.1);
   land_rate.reverse();
   println!("Simulated {} rounds for {} players. It takes about 20 rounds to get around the board once", rounds, num_players);
-  println!("{:?}", land_rate);
+  land_rate.iter().for_each(|(id, count)| println!("{},{}", id, count));
   println!("thirteen was rolled {} times", thirteen_count);
 }
 
