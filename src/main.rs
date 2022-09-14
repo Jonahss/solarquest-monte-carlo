@@ -12,34 +12,22 @@ fn main() {
 
   let board = Board::new_full_board();
 
-  let land_rate: HashMap<SolarID, u128> = HashMap::new();
+  let mut land_rate: HashMap<SolarID, u128> = HashMap::new();
   let num_players = 1;
   let rounds = 10;
   let mut players: Vec<PlayerCursor> = (0..num_players).map(|_| board.new_player()).collect();
   
- // for turn in 0..rounds {
-    // let mut players_to_move = players.clone();
-    // players = players_to_move.iter_mut().map(|mut player| {
-    //   let roll = 1; //todo: roll dice, handle doubles, handle thirteen
-    //   let player = board.move_player(player, roll);
-    //   //println!("player rolled {} on turn {} and landed on {}", roll, turn, player.current_spot());
-    //   //let count = land_rate.entry(player.current_spot().id()).or_insert(0);
-    //   //*count += 1;
-    //   player.to_owned()
-    // }).collect();
+  for turn in 0..rounds {
+    for (player_num, player) in players.iter_mut().enumerate() {
+      let roll = 12; //TODO roll dice, handle doubles, handle thirteen
+      board.move_player(player, roll);
+      println!("player {} rolled {} on turn {} and landed on {}", player_num, roll, turn, player.current_spot_id);
+      let count = land_rate.entry(player.current_spot_id).or_insert(0);
+      *count += 1;
+    }
+  }
 
-    // let mut players_to_move = players.clone();
-    // players = players_to_move.iter_mut().map(|mut player| {
-    //   let roll = 1; //todo: roll dice, handle doubles, handle thirteen
-    //   let player = board.move_player(player, roll);
-    //   //println!("player rolled {} on turn {} and landed on {}", roll, turn, player.current_spot());
-    //   //let count = land_rate.entry(player.current_spot().id()).or_insert(0);
-    //   //*count += 1;
-    //   player.to_owned()
-    // }).collect();
- // }
-
-
+  println!("{:?}", land_rate);
 }
 
 #[macro_export]
@@ -665,7 +653,7 @@ mod main {
       self.find_node(query).unwrap().spot()
     }
 
-    pub fn move_player (&'a self, player: &'a mut PlayerCursor, amount: u16) -> &'a mut PlayerCursor {
+    pub fn move_player (&'a self, player: &'a mut PlayerCursor, amount: u16) {
       let mut movement_remaining = amount;
       let mut current_node = self.find_node(&player.current_spot_id).unwrap();
       let mut last_fork = Option::None;
@@ -753,8 +741,6 @@ mod main {
       };
 
       player.current_spot_id = current_node.spot().id();
-
-      player
     }
   }
 
@@ -888,16 +874,16 @@ mod tests {
       let player_1 = &mut board.new_player();
       assert_eq!(player_1.current_spot_id, SolarID::Earth);
 
-      let player_1 = board.move_player(player_1, 1);
+      board.move_player(player_1, 1);
       assert_eq!(player_1.current_spot_id, SolarID::Moon);
 
-      let player_1 = board.move_player(player_1, 1);
+      board.move_player(player_1, 1);
       assert_eq!(player_1.current_spot_id, SolarID::Earth);
 
-      let player_1 = board.move_player(player_1, 8);
+      board.move_player(player_1, 8);
       assert_eq!(player_1.current_spot_id, SolarID::Earth);
 
-      let player_1 = board.move_player(player_1, 3);
+      board.move_player(player_1, 3);
       assert_eq!(player_1.current_spot_id, SolarID::Moon);
     }
 
@@ -914,34 +900,34 @@ mod tests {
       let player_1 = &mut board.new_player();
       assert_eq!(player_1.current_spot_id, SolarID::Earth);
 
-      let player_1 = board.move_player(player_1, 1);
+      board.move_player(player_1, 1);
       assert_eq!(player_1.current_spot_id, SolarID::Moon);
 
-      let player_1 = board.move_player(player_1, 1);
+      board.move_player(player_1, 1);
       assert_eq!(player_1.current_spot_id, SolarID::Io);
 
-      let player_1 = board.move_player(player_1, 3);
+      board.move_player(player_1, 3);
       assert_eq!(player_1.current_spot_id, SolarID::EmptySpace2);
 
-      let player_1 = board.move_player(player_1, 1);
+      board.move_player(player_1, 1);
       assert_eq!(player_1.current_spot_id, SolarID::Io);
 
-      let player_1 = board.move_player(player_1, 6);
+      board.move_player(player_1, 6);
       assert_eq!(player_1.current_spot_id, SolarID::EmptySpace1);
 
-      let player_1 = board.move_player(player_1, 5);
+      board.move_player(player_1, 5);
       assert_eq!(player_1.current_spot_id, SolarID::Venus);
 
-      let player_1 = board.move_player(player_1, 6);
+      board.move_player(player_1, 6);
       assert_eq!(player_1.current_spot_id, SolarID::EmptySpace2);
 
-      let player_1 = board.move_player(player_1, 7);
+      board.move_player(player_1, 7);
       assert_eq!(player_1.current_spot_id, SolarID::Io);
 
-      let player_1 = board.move_player(player_1, 6);
+      board.move_player(player_1, 6);
       assert_eq!(player_1.current_spot_id, SolarID::EmptySpace1);
 
-      let player_1 = board.move_player(player_1, 12);
+      board.move_player(player_1, 12);
       assert_eq!(player_1.current_spot_id, SolarID::Io);
     }
 
@@ -952,34 +938,34 @@ mod tests {
       let player_1 = &mut board.new_player();
       assert_eq!(player_1.current_spot_id, SolarID::Earth);
 
-      let player_1 = board.move_player(player_1, 1);
+      board.move_player(player_1, 1);
       assert_eq!(player_1.current_spot_id, SolarID::Earth);
 
-      let player_1 = board.move_player(player_1, 2);
+      board.move_player(player_1, 2);
       assert_eq!(player_1.current_spot_id, SolarID::Moon);
 
-      let player_1 = board.move_player(player_1, 3);
+      board.move_player(player_1, 3);
       assert_eq!(player_1.current_spot_id, SolarID::FederationStationI);
 
-      let player_1 = board.move_player(player_1, 1);
+      board.move_player(player_1, 1);
       assert_eq!(player_1.current_spot_id, SolarID::EmptySpace0);
 
-      let player_1 = board.move_player(player_1, 6);
+      board.move_player(player_1, 6);
       assert_eq!(player_1.current_spot_id, SolarID::Callisto);
 
-      let player_1 = board.move_player(player_1, 12);
+      board.move_player(player_1, 12);
       assert_eq!(player_1.current_spot_id, SolarID::EmptySpace4);
 
-      let player_1 = board.move_player(player_1, 9);
+      board.move_player(player_1, 9);
       assert_eq!(player_1.current_spot_id, SolarID::FederationStationIV);
 
-      let player_1 = board.move_player(player_1, 23);
+      board.move_player(player_1, 23);
       assert_eq!(player_1.current_spot_id, SolarID::VenusResearchLab);
 
-      let player_1 = board.move_player(player_1, 31);
+      board.move_player(player_1, 31);
       assert_eq!(player_1.current_spot_id, SolarID::Naiad);
 
-      let player_1 = board.move_player(player_1, 16);
+      board.move_player(player_1, 16);
       assert_eq!(player_1.current_spot_id, SolarID::Moon);
     }
 }
