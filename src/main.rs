@@ -1,6 +1,7 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, convert::TryInto};
 
 use crate::main::*;
+use bracket_random::prelude::RandomNumberGenerator;
 
 fn main() {
   println!("gello");
@@ -10,16 +11,32 @@ fn main() {
 
   println!("{}", a.0+b.0);
 
+  let mut rng = RandomNumberGenerator::new();
+  let mut thirteen_count = 0;
+
   let board = Board::new_full_board();
 
   let mut land_rate: HashMap<SolarID, u128> = HashMap::new();
-  let num_players = 1;
-  let rounds = 10;
+  let num_players = 1000;
+  let rounds = 20 * 2; // about 20 rounds to get around the board once
   let mut players: Vec<PlayerCursor> = (0..num_players).map(|_| board.new_player()).collect();
   
   for turn in 0..rounds {
     for (player_num, player) in players.iter_mut().enumerate() {
-      let roll = 12; //TODO roll dice, handle doubles, handle thirteen
+      let roll = (rng.roll_str("1d6").unwrap(), rng.roll_str("1d6").unwrap());
+      if roll.0 == roll.1 {
+        // If you roll doubles, you can skip an oponents spot, but want to land on a property if it is unavailable.
+        // for the sake of this analysis, I think we prefer to just treat it as a landing, since we're looking
+        // for the most popular spots
+      }
+      if (roll.0 == 1 && roll.1 == 3) || (roll.0 == 3 && roll.1 == 1) {
+        println!("thirteen!"); // TODO
+        thirteen_count += 1;
+        // It's a lot of work to code in what happens on a thirteen! The cards all do different things.
+        // leaving it out for now
+      }
+
+      let roll = (roll.0 as u16 + roll.1 as u16).try_into().unwrap();
       board.move_player(player, roll);
       println!("player {} rolled {} on turn {} and landed on {}", player_num, roll, turn, player.current_spot_id);
       let count = land_rate.entry(player.current_spot_id).or_insert(0);
@@ -27,6 +44,9 @@ fn main() {
     }
   }
 
+  let mut land_rate: Vec<(&SolarID, &u128)> = land_rate.iter().collect();
+  land_rate.sort_unstable_by_key(|pair| pair.1);
+  land_rate.reverse();
   println!("{:?}", land_rate);
 }
 
