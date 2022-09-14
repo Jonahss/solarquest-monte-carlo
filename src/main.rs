@@ -17,7 +17,7 @@ fn main() {
   let board = Board::new_full_board();
 
   let mut land_rate: HashMap<SolarID, u128> = HashMap::new();
-  let num_players = 1000;
+  let num_players = 10_000;
   let rounds = 20 * 2; // about 20 rounds to get around the board once
   let mut players: Vec<PlayerCursor> = (0..num_players).map(|_| board.new_player()).collect();
   
@@ -47,7 +47,9 @@ fn main() {
   let mut land_rate: Vec<(&SolarID, &u128)> = land_rate.iter().collect();
   land_rate.sort_unstable_by_key(|pair| pair.1);
   land_rate.reverse();
+  println!("Simulated {} rounds for {} players. It takes about 20 rounds to get around the board once", rounds, num_players);
   println!("{:?}", land_rate);
+  println!("thirteen was rolled {} times", thirteen_count);
 }
 
 #[macro_export]
@@ -122,9 +124,7 @@ macro_rules! merge {
 
 mod main {
   use crate::main::Spot::*;
-  use std::collections::HashMap;
   use std::fmt::{self, Debug};
-  use std::mem::take;
   use std::error::Error;
   use std::fmt::Display;
 
@@ -234,6 +234,7 @@ mod main {
   }
 
   impl <'a> Board {
+    #[cfg(test)]
     pub fn new_single_loop() -> Board {
       let earth = Spot::Planet (Property {
         name: SolarID::Earth,
@@ -257,7 +258,7 @@ mod main {
         board_path,
       }
     }
-
+    #[cfg(test)]
     pub fn new_nested_loop() -> Board {
       let earth = Spot::Planet (Property {
         name: SolarID::Earth,
@@ -489,13 +490,13 @@ mod main {
         continue_orbit: Box::new(naiad),
       };
 
-      let federation_station_IX = BoardNode::PassThrough {
+      let federation_station_ix = BoardNode::PassThrough {
         spot: federation_station_ix,
         next: Box::new(galatea),
       };
       let triton = BoardNode::PassThrough {
         spot: triton,
-        next: Box::new(federation_station_IX),
+        next: Box::new(federation_station_ix),
       };
       let despina = BoardNode::PassThrough {
         spot: despina,
@@ -653,8 +654,8 @@ mod main {
             },
             BoardNode::Fork { escape_orbit, continue_orbit, .. } => {
               return {
-                recursive_find(escape_orbit, query)
-                              .or(recursive_find(continue_orbit, query))
+                recursive_find(continue_orbit, query)
+                              .or(recursive_find(escape_orbit, query))
               }
             }
             BoardNode::Link(_) => return Err(Box::new(NotFoundError { looking_for: query.to_owned() })),
@@ -666,9 +667,7 @@ mod main {
       recursive_find(start, query)
     }
 
-    // WARNING: this method searches by traversing the board, but only takes the escape_orbit branch of forks.
-    // So some nodes can never be found this way.
-    // TODO fix this
+    #[allow(dead_code)]
     pub fn find_spot(&self, query: &SolarID) -> &Spot {
       self.find_node(query).unwrap().spot()
     }
@@ -911,6 +910,7 @@ mod tests {
     fn find_node() {
       let board = Board::new_nested_loop();
       let io = board.find_spot(&SolarID::Io);
+      assert_eq!(io.id(), SolarID::Io);
     }
 
     #[test]
