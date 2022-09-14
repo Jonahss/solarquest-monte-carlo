@@ -18,25 +18,25 @@ fn main() {
   let mut players: Vec<PlayerCursor> = (0..num_players).map(|_| board.new_player()).collect();
   
  // for turn in 0..rounds {
-    let mut players_to_move = players.clone();
-    players = players_to_move.iter_mut().map(|mut player| {
-      let roll = 1; //todo: roll dice, handle doubles, handle thirteen
-      let player = board.move_player(player, roll);
-      //println!("player rolled {} on turn {} and landed on {}", roll, turn, player.current_spot());
-      //let count = land_rate.entry(player.current_spot().id()).or_insert(0);
-      //*count += 1;
-      player.to_owned()
-    }).collect();
+    // let mut players_to_move = players.clone();
+    // players = players_to_move.iter_mut().map(|mut player| {
+    //   let roll = 1; //todo: roll dice, handle doubles, handle thirteen
+    //   let player = board.move_player(player, roll);
+    //   //println!("player rolled {} on turn {} and landed on {}", roll, turn, player.current_spot());
+    //   //let count = land_rate.entry(player.current_spot().id()).or_insert(0);
+    //   //*count += 1;
+    //   player.to_owned()
+    // }).collect();
 
-    let mut players_to_move = players.clone();
-    players = players_to_move.iter_mut().map(|mut player| {
-      let roll = 1; //todo: roll dice, handle doubles, handle thirteen
-      let player = board.move_player(player, roll);
-      //println!("player rolled {} on turn {} and landed on {}", roll, turn, player.current_spot());
-      //let count = land_rate.entry(player.current_spot().id()).or_insert(0);
-      //*count += 1;
-      player.to_owned()
-    }).collect();
+    // let mut players_to_move = players.clone();
+    // players = players_to_move.iter_mut().map(|mut player| {
+    //   let roll = 1; //todo: roll dice, handle doubles, handle thirteen
+    //   let player = board.move_player(player, roll);
+    //   //println!("player rolled {} on turn {} and landed on {}", roll, turn, player.current_spot());
+    //   //let count = land_rate.entry(player.current_spot().id()).or_insert(0);
+    //   //*count += 1;
+    //   player.to_owned()
+    // }).collect();
  // }
 
 
@@ -115,8 +115,10 @@ macro_rules! merge {
 mod main {
   use crate::main::Spot::*;
   use std::collections::HashMap;
-  use std::fmt;
+  use std::fmt::{self, Debug};
   use std::mem::take;
+  use std::error::Error;
+  use std::fmt::Display;
 
   #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
   pub enum SolarID {
@@ -212,6 +214,12 @@ mod main {
     GravityWell14,
     GravityWell15,
   }
+  
+  impl fmt::Display for SolarID {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
   
   pub struct Board {
     board_path: BoardPath,
@@ -599,60 +607,71 @@ mod main {
       }
     }
 
-    pub fn new_player(&'a self) -> PlayerCursor<'a> {
-      PlayerCursor { current_board_node: &self.board_path.start }
+    pub fn new_player(&'a self) -> PlayerCursor {
+      PlayerCursor { current_spot_id: SolarID::Earth }
     }
 
-    // Warning, this method searches by traversing the board, but only takes the escape_orbit branch of forks.
-    // So some nodes can never be found this way.
-    // TODO fix this
-    fn find_node (&self, query: &SolarID) -> &BoardNode {
-      let mut current_node = &self.board_path.start;
-      loop {
-        let spot = current_node.spot();
-        match spot {
-          Spot::EmptySpace { name } |
-          Spot::GravityWell { name } |
-          Spot::FederationStation { name, .. } |
-          Spot::Earth { name, .. }=> {
-            if name == query {
-              return current_node;
-            };
-          },
-          Spot::Planet(prop) |
-          Spot::Moon(prop) |
-          Spot::SpaceDock(prop) |
-          Spot::ResearchLab(prop) => {
-            if &prop.name == query {
-              return current_node;
+    fn find_node (&self, query: &SolarID) -> Result<&BoardNode, Box<dyn Error>> {
+
+      fn recursive_find<'a>(start: &'a BoardNode, query: &SolarID) -> Result<&'a BoardNode, Box<dyn Error>> {
+        let mut current_node = start;
+        loop {
+          if let BoardNode::Link(_) = current_node {
+            return Err(Box::new(NotFoundError { looking_for: query.to_owned() }));
+          };
+          let spot = current_node.spot();
+          match spot {
+            Spot::EmptySpace { name } |
+            Spot::GravityWell { name } |
+            Spot::FederationStation { name, .. } |
+            Spot::Earth { name, .. }=> {
+              if name == query {
+                return Ok(current_node);
+              };
+            },
+            Spot::Planet(prop) |
+            Spot::Moon(prop) |
+            Spot::SpaceDock(prop) |
+            Spot::ResearchLab(prop) => {
+              if &prop.name == query {
+                return Ok(current_node);
+              }
             }
           }
-        }
-        match current_node {
-          BoardNode::PassThrough { next, ..} |
-          BoardNode::Merge { next, .. } => {
-            current_node = next;
-          },
-          BoardNode::Fork { escape_orbit, .. } => current_node = &escape_orbit,
-          _ => (),
-        }
-      };
+          match current_node {
+            BoardNode::PassThrough { next, ..} |
+            BoardNode::Merge { next, .. } => {
+              current_node = next;
+            },
+            BoardNode::Fork { escape_orbit, continue_orbit, .. } => {
+              return {
+                recursive_find(escape_orbit, query)
+                              .or(recursive_find(continue_orbit, query))
+              }
+            }
+            BoardNode::Link(_) => return Err(Box::new(NotFoundError { looking_for: query.to_owned() })),
+          }
+        };
+      }
+
+      let start = &self.board_path.start;
+      recursive_find(start, query)
     }
 
     // WARNING: this method searches by traversing the board, but only takes the escape_orbit branch of forks.
     // So some nodes can never be found this way.
     // TODO fix this
     pub fn find_spot(&self, query: &SolarID) -> &Spot {
-      self.find_node(query).spot()
+      self.find_node(query).unwrap().spot()
     }
 
-    pub fn move_player (&'a self, player: &'a mut PlayerCursor<'a>, amount: u16) -> &'a mut PlayerCursor {
+    pub fn move_player (&'a self, player: &'a mut PlayerCursor, amount: u16) -> &'a mut PlayerCursor {
       let mut movement_remaining = amount;
-      let mut current_node = player.current_board_node;
+      let mut current_node = self.find_node(&player.current_spot_id).unwrap();
       let mut last_fork = Option::None;
       let mut moves_since_last_fork = 0;
       let mut take_fork = false;
-      let mut last_non_gravity_well = player.current_board_node;
+      let mut last_non_gravity_well = current_node;
       
       while movement_remaining > 0 {
         // set last_non_gravity_well
@@ -697,7 +716,7 @@ mod main {
               moves_since_last_fork += 1;
             };
           },
-          BoardNode::Link(name) => current_node = &self.find_node(name),
+          BoardNode::Link(name) => current_node = &self.find_node(name).unwrap(),
         }
 
         // rewind if we land on a gravity well
@@ -729,11 +748,11 @@ mod main {
 
       // loop to first node, if we end on the Tail
       match current_node {
-        BoardNode::Link(name) => current_node = &self.find_node(name),
+        BoardNode::Link(name) => current_node = &self.find_node(name).unwrap(),
         _ => (),
       };
 
-      player.current_board_node = current_node;
+      player.current_spot_id = current_node.spot().id();
 
       player
     }
@@ -762,21 +781,8 @@ mod main {
     }
   }
 
-  #[derive(Copy, Clone)]
-  pub struct PlayerCursor<'a> {
-    current_board_node: &'a BoardNode,
-  }
-
-  impl <'a> PlayerCursor<'a> {
-    pub fn current_spot(&self) -> &'a Spot {
-      &self.current_board_node.spot()
-      // match self.current_board_node {
-      //   BoardNode::PassThrough { spot, .. } => spot,
-      //   BoardNode::Fork { spot, .. } => spot,
-      //   BoardNode::Merge { spot, .. } => spot,
-      //   _ => ("Player piece is lost in space!"), 
-      // }
-    }
+  pub struct PlayerCursor {
+    pub current_spot_id: SolarID,
   }
 
   #[derive(PartialEq, Debug)]
@@ -857,6 +863,18 @@ mod main {
       write!(f, "{:?}", spot_name)
     }
   }
+
+  #[derive(Debug)]
+struct NotFoundError<T: Display> {
+  looking_for: T,
+}
+
+impl<T: Display + Debug> Error for NotFoundError<T> {}
+impl<T: Display> fmt::Display for NotFoundError<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Could not find: {}", self.looking_for)
+    }
+}
 }
 
 #[cfg(test)]
@@ -868,19 +886,19 @@ mod tests {
       let board = Board::new_single_loop();
 
       let player_1 = &mut board.new_player();
-      assert_eq!(player_1.current_spot().to_string(), "Earth");
+      assert_eq!(player_1.current_spot_id, SolarID::Earth);
 
       let player_1 = board.move_player(player_1, 1);
-      assert_eq!(player_1.current_spot().to_string(), "Moon");
+      assert_eq!(player_1.current_spot_id, SolarID::Moon);
 
       let player_1 = board.move_player(player_1, 1);
-      assert_eq!(player_1.current_spot().to_string(), "Earth");
+      assert_eq!(player_1.current_spot_id, SolarID::Earth);
 
       let player_1 = board.move_player(player_1, 8);
-      assert_eq!(player_1.current_spot().to_string(), "Earth");
+      assert_eq!(player_1.current_spot_id, SolarID::Earth);
 
       let player_1 = board.move_player(player_1, 3);
-      assert_eq!(player_1.current_spot().to_string(), "Moon");
+      assert_eq!(player_1.current_spot_id, SolarID::Moon);
     }
 
     #[test]
@@ -894,37 +912,37 @@ mod tests {
       let board = Board::new_nested_loop();
 
       let player_1 = &mut board.new_player();
-      assert_eq!(player_1.current_spot().to_string(), "Earth");
+      assert_eq!(player_1.current_spot_id, SolarID::Earth);
 
       let player_1 = board.move_player(player_1, 1);
-      assert_eq!(player_1.current_spot().to_string(), "Moon");
+      assert_eq!(player_1.current_spot_id, SolarID::Moon);
 
       let player_1 = board.move_player(player_1, 1);
-      assert_eq!(player_1.current_spot().to_string(), "Io");
+      assert_eq!(player_1.current_spot_id, SolarID::Io);
 
       let player_1 = board.move_player(player_1, 3);
-      assert_eq!(player_1.current_spot().to_string(), "EmptySpace2");
+      assert_eq!(player_1.current_spot_id, SolarID::EmptySpace2);
 
       let player_1 = board.move_player(player_1, 1);
-      assert_eq!(player_1.current_spot().to_string(), "Io");
+      assert_eq!(player_1.current_spot_id, SolarID::Io);
 
       let player_1 = board.move_player(player_1, 6);
-      assert_eq!(player_1.current_spot().to_string(), "EmptySpace1");
+      assert_eq!(player_1.current_spot_id, SolarID::EmptySpace1);
 
       let player_1 = board.move_player(player_1, 5);
-      assert_eq!(player_1.current_spot().to_string(), "Venus");
+      assert_eq!(player_1.current_spot_id, SolarID::Venus);
 
       let player_1 = board.move_player(player_1, 6);
-      assert_eq!(player_1.current_spot().to_string(), "EmptySpace2");
+      assert_eq!(player_1.current_spot_id, SolarID::EmptySpace2);
 
       let player_1 = board.move_player(player_1, 7);
-      assert_eq!(player_1.current_spot().to_string(), "Io");
+      assert_eq!(player_1.current_spot_id, SolarID::Io);
 
       let player_1 = board.move_player(player_1, 6);
-      assert_eq!(player_1.current_spot().to_string(), "EmptySpace1");
+      assert_eq!(player_1.current_spot_id, SolarID::EmptySpace1);
 
       let player_1 = board.move_player(player_1, 12);
-      assert_eq!(player_1.current_spot().to_string(), "Io");
+      assert_eq!(player_1.current_spot_id, SolarID::Io);
     }
 
     #[test]
@@ -932,36 +950,36 @@ mod tests {
       let board = Board::new_full_board();
 
       let player_1 = &mut board.new_player();
-      assert_eq!(player_1.current_spot().to_string(), "Earth");
+      assert_eq!(player_1.current_spot_id, SolarID::Earth);
 
       let player_1 = board.move_player(player_1, 1);
-      assert_eq!(player_1.current_spot().to_string(), "Earth");
+      assert_eq!(player_1.current_spot_id, SolarID::Earth);
 
       let player_1 = board.move_player(player_1, 2);
-      assert_eq!(player_1.current_spot().to_string(), "Moon");
+      assert_eq!(player_1.current_spot_id, SolarID::Moon);
 
       let player_1 = board.move_player(player_1, 3);
-      assert_eq!(player_1.current_spot().to_string(), "FederationStationI");
+      assert_eq!(player_1.current_spot_id, SolarID::FederationStationI);
 
       let player_1 = board.move_player(player_1, 1);
-      assert_eq!(player_1.current_spot().to_string(), "EmptySpace0");
+      assert_eq!(player_1.current_spot_id, SolarID::EmptySpace0);
 
       let player_1 = board.move_player(player_1, 6);
-      assert_eq!(player_1.current_spot().to_string(), "Callisto");
+      assert_eq!(player_1.current_spot_id, SolarID::Callisto);
 
       let player_1 = board.move_player(player_1, 12);
-      assert_eq!(player_1.current_spot().to_string(), "EmptySpace4");
+      assert_eq!(player_1.current_spot_id, SolarID::EmptySpace4);
 
       let player_1 = board.move_player(player_1, 9);
-      assert_eq!(player_1.current_spot().to_string(), "FederationStationIV");
+      assert_eq!(player_1.current_spot_id, SolarID::FederationStationIV);
 
       let player_1 = board.move_player(player_1, 23);
-      assert_eq!(player_1.current_spot().to_string(), "VenusResearchLab");
+      assert_eq!(player_1.current_spot_id, SolarID::VenusResearchLab);
 
       let player_1 = board.move_player(player_1, 31);
-      assert_eq!(player_1.current_spot().to_string(), "Naiad");
+      assert_eq!(player_1.current_spot_id, SolarID::Naiad);
 
       let player_1 = board.move_player(player_1, 16);
-      assert_eq!(player_1.current_spot().to_string(), "Moon");
+      assert_eq!(player_1.current_spot_id, SolarID::Moon);
     }
 }
