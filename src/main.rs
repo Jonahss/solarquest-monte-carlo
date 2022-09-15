@@ -75,22 +75,11 @@ fn main() {
     SolarID::FederationStationVII,
     SolarID::FederationStationVIII,
     SolarID::FederationStationIX,
-    SolarID::EmptySpace0,
-    SolarID::EmptySpace1,
-    SolarID::EmptySpace2,
-    SolarID::EmptySpace3,
-    SolarID::EmptySpace4,
-    SolarID::EmptySpace5,
-    SolarID::EmptySpace6,
-    SolarID::EmptySpace7,
-    SolarID::EmptySpace8,
-    SolarID::EmptySpace9,
-    SolarID::EmptySpace10,
   );
   all_solar_ids.iter().for_each(|id| { land_rate.insert(*id, 0); });
 
-  let num_players = 10_000;
-  let rounds = 20 * 2; // about 20 rounds to get around the board once
+  let num_players = 100_000;
+  let rounds = 40; // about 20 rounds to get around the board once
   let mut players: Vec<PlayerCursor> = (0..num_players).map(|_| board.new_player()).collect();
   
   for turn in 0..rounds {
@@ -111,6 +100,10 @@ fn main() {
       let roll = (roll.0 as u16 + roll.1 as u16).try_into().unwrap();
       board.move_player(player, roll);
       println!("player {} rolled {} on turn {} and landed on {}", player_num, roll, turn, player.current_spot_id);
+      if player.current_spot_id.to_string().contains("EmptySpace") {
+        // skip empty spaces, we don't really care about how often you land on them
+        continue;
+      }
       let count = land_rate.entry(player.current_spot_id).or_insert(0);
       *count += 1;
     }
